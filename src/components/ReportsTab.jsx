@@ -8,6 +8,8 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { CustomSelect } from './ui/CustomSelect';
+import { CustomDatePicker } from './ui/CustomDatePicker';
 
 export function ReportsTab({
   projects,
@@ -17,14 +19,41 @@ export function ReportsTab({
   onImportComplete
 }) {
   const [importStatus, setImportStatus] = useState('');
+  const [periodFilter, setPeriodFilter] = useState('All');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const fileInputRef = useRef(null);
 
+  // Filter expenses by selected audit period
+  const filteredExpenses = useMemo(() => {
+    if (periodFilter === 'All') return expenses;
+    const today = new Date();
+    return expenses.filter(e => {
+      const expDate = new Date(e.date);
+      if (periodFilter === 'This Month') {
+        const thisMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        return e.date && e.date.startsWith(thisMonthPrefix);
+      }
+      if (periodFilter === '30d') {
+        const limit = new Date();
+        limit.setDate(limit.getDate() - 30);
+        return expDate >= limit;
+      }
+      if (periodFilter === 'Custom') {
+        if (customStartDate && e.date < customStartDate) return false;
+        if (customEndDate && e.date > customEndDate) return false;
+        return true;
+      }
+      return true;
+    });
+  }, [expenses, periodFilter, customStartDate, customEndDate]);
+
   const totalBudget = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0);
-  const totalSpent = expenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+  const totalSpent = filteredExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
 
   // Group by project
   const projectAudit = projects.map(p => {
-    const pExpenses = expenses.filter(e => e.projectId === p.id);
+    const pExpenses = filteredExpenses.filter(e => e.projectId === p.id);
     const spent = pExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     const variance = (Number(p.budget) || 0) - spent;
     return {
@@ -39,7 +68,7 @@ export function ReportsTab({
   // Dynamic funding sources
   const fundingSources = useMemo(() => {
     const map = {};
-    expenses.forEach(e => {
+    filteredExpenses.forEach(e => {
       const payer = e.payer?.trim() || 'Unspecified';
       if (!map[payer]) {
         map[payer] = { amount: 0, count: 0, categories: new Set() };
@@ -55,7 +84,7 @@ export function ReportsTab({
       count: data.count,
       categories: Array.from(data.categories).join(', ')
     })).sort((a, b) => b.amount - a.amount);
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -181,12 +210,72 @@ export function ReportsTab({
 
       {/* Project Audit Statement */}
       <div className="glass-panel rounded-2xl overflow-hidden shadow-2xs">
-        <div className="p-4 border-b border-slate-200/60 flex justify-between items-center bg-slate-50/70">
-          <h3 className="text-xs sm:text-sm font-bold text-slate-900">Project Budget vs Real Spend Ledger</h3>
-          <span className="text-[11px] sm:text-xs font-mono-num font-bold text-slate-800">
-            Budget: ₹{totalBudget.toLocaleString('en-IN')} | Real Spent: ₹{totalSpent.toLocaleString('en-IN')}
-          </span>
+        <div className="p-4 border-b border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70">
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900">Project Budget vs Real Spend Ledger</h3>
+            <p className="text-[11px] text-slate-500">
+              Audit statement based on verified expenditures
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap no-print">
+            <span className="text-xs font-semibold text-slate-400">Audit Period:</span>
+            <CustomSelect
+              value={periodFilter}
+              onChange={(val) => {
+                setPeriodFilter(val);
+                if (val !== 'Custom') {
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }
+              }}
+              size="sm"
+              className="w-40"
+              options={[
+                { value: 'All', label: 'All Time' },
+                { value: 'This Month', label: 'This Month' },
+                { value: '30d', label: 'Last 30 Days' },
+                { value: 'Custom', label: 'Custom Range...' }
+              ]}
+            />
+          </div>
         </div>
+
+        {periodFilter === 'Custom' && (
+          <div className="px-4 py-2.5 bg-slate-50/50 border-b border-slate-200/50 flex flex-wrap items-center gap-3 no-print">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500">From:</span>
+              <div className="w-40">
+                <CustomDatePicker
+                  value={customStartDate}
+                  onChange={setCustomStartDate}
+                  size="sm"
+                  placeholder="Start date"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500">To:</span>
+              <div className="w-40">
+                <CustomDatePicker
+                  value={customEndDate}
+                  onChange={setCustomEndDate}
+                  size="sm"
+                  placeholder="End date"
+                />
+              </div>
+            </div>
+            {(customStartDate || customEndDate) && (
+              <button
+                type="button"
+                onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
+                className="text-xs text-rose-500 hover:text-rose-700 font-semibold"
+              >
+                Reset range
+              </button>
+            )}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 border-b border-slate-200/70 text-slate-500 font-bold uppercase tracking-wider">

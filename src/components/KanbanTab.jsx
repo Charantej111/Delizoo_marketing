@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, User, Trash2, CheckSquare } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import { CustomSelect } from './ui/CustomSelect';
 
 export function KanbanTab({
   tasks,
@@ -76,16 +77,17 @@ export function KanbanTab({
           {projects.length > 0 && (
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-slate-500">Project:</span>
-              <select
+              <CustomSelect
                 value={filterProject}
-                onChange={(e) => setFilterProject(e.target.value)}
-                className="text-xs glass-input rounded-xl px-2.5 py-1.5 font-medium text-slate-800 outline-none"
-              >
-                <option value="All">All Projects</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
+                onChange={setFilterProject}
+                size="sm"
+                className="w-44"
+                searchable={projects.length > 5}
+                options={[
+                  { value: 'All', label: 'All Projects' },
+                  ...projects.map(p => ({ value: p.id, label: p.title }))
+                ]}
+              />
             </div>
           )}
 
@@ -218,22 +220,23 @@ export function KanbanTab({
                           </div>
 
                           {/* Move Column Selector & Delete */}
-                          <div className="flex items-center justify-between pt-1 gap-1">
-                            <select
+                          <div className="flex items-center justify-between pt-1 gap-1.5">
+                            <CustomSelect
                               value={task.status || 'To Do'}
-                              onChange={(e) => handleStatusChange(task, e.target.value)}
-                              className="text-[10px] font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-slate-600 outline-none"
-                            >
-                              {columns.map(c => (
-                                <option key={c.id} value={c.id}>Move: {c.label}</option>
-                              ))}
-                            </select>
+                              onChange={(newStatus) => handleStatusChange(task, newStatus)}
+                              size="sm"
+                              className="flex-1"
+                              options={columns.map(c => ({
+                                value: c.id,
+                                label: `Move: ${c.label}`
+                              }))}
+                            />
                             <button
                               onClick={() => onDeleteTask(task.id)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition-all"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all shrink-0"
                               title="Delete"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>

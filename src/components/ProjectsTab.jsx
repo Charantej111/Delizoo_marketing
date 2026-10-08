@@ -10,6 +10,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import { CustomSelect } from './ui/CustomSelect';
 
 export function ProjectsTab({
   projects,
@@ -23,6 +24,7 @@ export function ProjectsTab({
 }) {
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   // Dynamically extract departments
@@ -65,9 +67,21 @@ export function ProjectsTab({
       const matchDesc = (p.description || '').toLowerCase().includes(q);
       const matchLead = (p.lead || '').toLowerCase().includes(q);
       const matchDept = (p.department || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchDesc && !matchLead && !matchDept) return false;
+    if (!matchTitle && !matchDesc && !matchLead && !matchDept) return false;
     }
     return true;
+  });
+
+  // Sort projects
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    const ma = projectMetrics[a.id] || { totalSpent: 0, taskProgressPct: 0 };
+    const mb = projectMetrics[b.id] || { totalSpent: 0, taskProgressPct: 0 };
+    if (sortBy === 'budget-desc') return (Number(b.budget) || 0) - (Number(a.budget) || 0);
+    if (sortBy === 'budget-asc') return (Number(a.budget) || 0) - (Number(b.budget) || 0);
+    if (sortBy === 'spent-desc') return mb.totalSpent - ma.totalSpent;
+    if (sortBy === 'progress-desc') return mb.taskProgressPct - ma.taskProgressPct;
+    if (sortBy === 'title-asc') return (a.title || '').localeCompare(b.title || '');
+    return 0;
   });
 
   return (
@@ -86,7 +100,25 @@ export function ProjectsTab({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Sort Switcher */}
+            {projects.length > 1 && (
+              <CustomSelect
+                value={sortBy}
+                onChange={setSortBy}
+                size="sm"
+                className="w-38"
+                options={[
+                  { value: 'default', label: 'Default Order' },
+                  { value: 'budget-desc', label: 'Budget (Highest)' },
+                  { value: 'budget-asc', label: 'Budget (Lowest)' },
+                  { value: 'spent-desc', label: 'Spend (Highest)' },
+                  { value: 'progress-desc', label: 'Progress (Highest)' },
+                  { value: 'title-asc', label: 'Title (A-Z)' }
+                ]}
+              />
+            )}
+
             {/* View Switcher */}
             <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60">
               <button
@@ -167,13 +199,13 @@ export function ProjectsTab({
           actionText="Create First Project"
           onAction={onOpenProjectModal}
         />
-      ) : filteredProjects.length === 0 ? (
+      ) : sortedProjects.length === 0 ? (
         <p className="text-xs text-slate-400 text-center py-12">
           No projects match the selected filter criteria.
         </p>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {filteredProjects.map(proj => {
+          {sortedProjects.map(proj => {
             const m = projectMetrics[proj.id] || { totalSpent: 0, expenseCount: 0, taskCount: 0, completedTasks: 0, budgetBurnPct: 0, taskProgressPct: 0 };
             const isOverBudget = proj.budget > 0 && m.totalSpent > proj.budget;
 
@@ -312,7 +344,7 @@ export function ProjectsTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProjects.map(proj => {
+                {sortedProjects.map(proj => {
                   const m = projectMetrics[proj.id] || { totalSpent: 0, expenseCount: 0, taskCount: 0, completedTasks: 0 };
                   return (
                     <tr key={proj.id} className="hover:bg-slate-50/60 transition-colors">

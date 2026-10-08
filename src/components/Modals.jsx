@@ -12,6 +12,8 @@ import {
   UserCheck
 } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { CustomSelect } from './ui/CustomSelect';
+import { CustomDatePicker } from './ui/CustomDatePicker';
 
 // 1. Expense Modal (Add / Edit)
 export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects, existingPayers = [] }) {
@@ -148,16 +150,20 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
             <div>
               <label className="block font-bold text-slate-800 mb-1">LINKED PROJECT</label>
               {projects.length > 0 ? (
-                <select
+                <CustomSelect
                   value={formData.projectId}
-                  onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                  className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-slate-800 outline-none"
-                >
-                  <option value="">General Operations / Unassigned</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>{p.title} ({p.department || 'General'})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, projectId: val })}
+                  options={[
+                    { value: '', label: 'General Operations / Unassigned' },
+                    ...projects.map(p => ({
+                      value: p.id,
+                      label: p.title,
+                      sublabel: p.department || 'General'
+                    }))
+                  ]}
+                  placeholder="Select project..."
+                  searchable={projects.length > 5}
+                />
               ) : (
                 <div className="text-xs text-slate-400 py-2 px-3 bg-slate-50 rounded-xl border border-slate-200/60">
                   No projects created yet (will be logged as General Ops).
@@ -170,12 +176,11 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-slate-800 mb-1">WHEN (DATE) *</label>
-              <input
-                type="date"
-                required
+              <CustomDatePicker
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-mono-num font-semibold text-slate-800 outline-none"
+                onChange={(dateStr) => setFormData({ ...formData, date: dateStr })}
+                required
+                placeholder="Select expense date"
               />
             </div>
             <div>
@@ -245,16 +250,16 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-slate-800 mb-1">PAYMENT MODE</label>
-              <select
+              <CustomSelect
                 value={formData.paymentMode}
-                onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-slate-800 outline-none"
-              >
-                <option value="UPI">UPI (Google Pay / PhonePe / Paytm)</option>
-                <option value="Cash">Cash Voucher</option>
-                <option value="Bank Transfer">Bank Transfer (IMPS / NEFT)</option>
-                <option value="Card">Debit / Credit Card</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, paymentMode: val })}
+                options={[
+                  { value: 'UPI', label: 'UPI (Google Pay / PhonePe / Paytm)' },
+                  { value: 'Cash', label: 'Cash Voucher' },
+                  { value: 'Bank Transfer', label: 'Bank Transfer (IMPS / NEFT)' },
+                  { value: 'Card', label: 'Debit / Credit Card' }
+                ]}
+              />
             </div>
             <div>
               <label className="block font-bold text-slate-800 mb-1">UTR / TRANSACTION REF</label>
@@ -474,36 +479,29 @@ export function ProjectModal({ isOpen, onClose, onSave, projectToEdit }) {
             </div>
             <div>
               <label className="block font-bold text-slate-800 mb-1">STATUS</label>
-              <select
+              <CustomSelect
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-slate-800 outline-none"
-              >
-                <option value="Planning">Planning</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="On Hold">On Hold</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, status: val })}
+                options={['Planning', 'In Progress', 'Completed', 'On Hold']}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-slate-800 mb-1">START DATE</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-mono-num text-slate-800 outline-none"
+                onChange={(dateStr) => setFormData({ ...formData, startDate: dateStr })}
+                placeholder="Pick start date"
               />
             </div>
             <div>
               <label className="block font-bold text-slate-800 mb-1">TARGET DEADLINE</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-mono-num text-slate-800 outline-none"
+                onChange={(dateStr) => setFormData({ ...formData, endDate: dateStr })}
+                placeholder="Pick deadline"
               />
             </div>
           </div>
@@ -604,16 +602,15 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
 
           <div>
             <label className="block font-bold text-slate-800 mb-1">LINKED PROJECT</label>
-            <select
+            <CustomSelect
               value={formData.projectId}
-              onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-              className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-slate-800 outline-none"
-            >
-              <option value="">General</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.title}</option>
-              ))}
-            </select>
+              onChange={(val) => setFormData({ ...formData, projectId: val })}
+              options={[
+                { value: '', label: 'General / No Project' },
+                ...projects.map(p => ({ value: p.id, label: p.title }))
+              ]}
+              placeholder="Select project..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -629,26 +626,20 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
             </div>
             <div>
               <label className="block font-bold text-slate-800 mb-1">PRIORITY</label>
-              <select
+              <CustomSelect
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-slate-800 outline-none"
-              >
-                <option value="Urgent">Urgent</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, priority: val })}
+                options={['Urgent', 'High', 'Medium', 'Low']}
+              />
             </div>
           </div>
 
           <div>
             <label className="block font-bold text-slate-800 mb-1">DUE DATE</label>
-            <input
-              type="date"
+            <CustomDatePicker
               value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full px-3 py-2 glass-input rounded-xl font-mono-num text-slate-800 outline-none"
+              onChange={(dateStr) => setFormData({ ...formData, dueDate: dateStr })}
+              placeholder="Select due date"
             />
           </div>
 

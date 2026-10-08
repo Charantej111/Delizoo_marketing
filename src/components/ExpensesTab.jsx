@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { storageService } from '../services/storage';
+import { CustomSelect } from './ui/CustomSelect';
+import { CustomDatePicker } from './ui/CustomDatePicker';
 
 export function ExpensesTab({
   expenses,
@@ -31,6 +33,8 @@ export function ExpensesTab({
   const [filterPayer, setFilterPayer] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPaymentMode, setFilterPaymentMode] = useState('All');
+  const [filterDatePreset, setFilterDatePreset] = useState('All');
+  const [filterCustomDate, setFilterCustomDate] = useState('');
   const [sortBy, setSortBy] = useState('date-desc'); // date-desc, date-asc, amount-desc, amount-asc
 
   const projMap = useMemo(() => {
@@ -63,6 +67,26 @@ export function ExpensesTab({
     if (filterPayer !== 'All' && e.payer?.trim() !== filterPayer) return false;
     if (filterCategory !== 'All' && e.category?.trim() !== filterCategory) return false;
     if (filterPaymentMode !== 'All' && !(e.paymentMode || '').includes(filterPaymentMode)) return false;
+
+    // Date / Period filter
+    if (filterDatePreset !== 'All') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (filterDatePreset === 'Today') {
+        if (e.date !== todayStr) return false;
+      } else if (filterDatePreset === '7d') {
+        const d = new Date(e.date);
+        const limit = new Date();
+        limit.setDate(limit.getDate() - 7);
+        if (d < limit) return false;
+      } else if (filterDatePreset === '30d') {
+        const d = new Date(e.date);
+        const limit = new Date();
+        limit.setDate(limit.getDate() - 30);
+        if (d < limit) return false;
+      } else if (filterDatePreset === 'Custom') {
+        if (filterCustomDate && e.date !== filterCustomDate) return false;
+      }
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -167,85 +191,134 @@ export function ExpensesTab({
       {/* Dynamic Filter Controls */}
       {expenses.length > 0 && (
         <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <h3 className="text-sm font-bold text-slate-900">Filter & Sort Ledger</h3>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400">Sort:</span>
-              <select
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-400">Sort:</span>
+              <CustomSelect
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-xs glass-input rounded-lg px-2 py-1 font-semibold text-slate-800 outline-none"
-              >
-                <option value="date-desc">Date (Newest)</option>
-                <option value="date-asc">Date (Oldest)</option>
-                <option value="amount-desc">Amount (Highest)</option>
-                <option value="amount-asc">Amount (Lowest)</option>
-              </select>
+                onChange={setSortBy}
+                size="sm"
+                className="w-44"
+                options={[
+                  { value: 'date-desc', label: 'Date (Newest)' },
+                  { value: 'date-asc', label: 'Date (Oldest)' },
+                  { value: 'amount-desc', label: 'Amount (Highest)' },
+                  { value: 'amount-asc', label: 'Amount (Lowest)' }
+                ]}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Project Filter */}
             <div>
               <label className="block text-[11px] font-bold text-slate-400 mb-1">PROJECT</label>
-              <select
+              <CustomSelect
                 value={selectedProjectId || 'All'}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="w-full text-xs glass-input rounded-xl px-2.5 py-1.5 font-medium text-slate-800 outline-none"
-              >
-                <option value="All">All Projects</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
+                onChange={setSelectedProjectId}
+                size="sm"
+                searchable={projects.length > 5}
+                options={[
+                  { value: 'All', label: 'All Projects' },
+                  ...projects.map(p => ({ value: p.id, label: p.title }))
+                ]}
+              />
             </div>
 
             {/* Who gave amount Filter */}
             <div>
               <label className="block text-[11px] font-bold text-slate-400 mb-1">WHO GAVE AMOUNT</label>
-              <select
+              <CustomSelect
                 value={filterPayer}
-                onChange={(e) => setFilterPayer(e.target.value)}
-                className="w-full text-xs glass-input rounded-xl px-2.5 py-1.5 font-medium text-slate-800 outline-none"
-              >
-                {payers.map(p => (
-                  <option key={p} value={p}>{p === 'All' ? 'All Contributors' : p}</option>
-                ))}
-              </select>
+                onChange={setFilterPayer}
+                size="sm"
+                searchable={payers.length > 5}
+                options={payers.map(p => ({
+                  value: p,
+                  label: p === 'All' ? 'All Contributors' : p
+                }))}
+              />
             </div>
 
             {/* Category Filter */}
             <div>
               <label className="block text-[11px] font-bold text-slate-400 mb-1">CATEGORY</label>
-              <select
+              <CustomSelect
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full text-xs glass-input rounded-xl px-2.5 py-1.5 font-medium text-slate-800 outline-none"
-              >
-                {categories.map(c => (
-                  <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>
-                ))}
-              </select>
+                onChange={setFilterCategory}
+                size="sm"
+                searchable={categories.length > 5}
+                options={categories.map(c => ({
+                  value: c,
+                  label: c === 'All' ? 'All Categories' : c
+                }))}
+              />
             </div>
 
             {/* Payment Mode */}
             <div>
               <label className="block text-[11px] font-bold text-slate-400 mb-1">PAYMENT MODE</label>
-              <select
+              <CustomSelect
                 value={filterPaymentMode}
-                onChange={(e) => setFilterPaymentMode(e.target.value)}
-                className="w-full text-xs glass-input rounded-xl px-2.5 py-1.5 font-medium text-slate-800 outline-none"
-              >
-                <option value="All">All Modes</option>
-                <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
-                <option value="Cash">Cash Voucher</option>
-                <option value="Bank">Bank Transfer / IMPS / NEFT</option>
-                <option value="Card">Debit / Credit Card</option>
-              </select>
+                onChange={setFilterPaymentMode}
+                size="sm"
+                options={[
+                  { value: 'All', label: 'All Modes' },
+                  { value: 'UPI', label: 'UPI' },
+                  { value: 'Cash', label: 'Cash Voucher' },
+                  { value: 'Bank', label: 'Bank Transfer' },
+                  { value: 'Card', label: 'Card' }
+                ]}
+              />
+            </div>
+
+            {/* Date / Period Filter */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1">TIMEFRAME</label>
+              <CustomSelect
+                value={filterDatePreset}
+                onChange={(val) => {
+                  setFilterDatePreset(val);
+                  if (val !== 'Custom') setFilterCustomDate('');
+                }}
+                size="sm"
+                options={[
+                  { value: 'All', label: 'All Time' },
+                  { value: 'Today', label: 'Today Only' },
+                  { value: '7d', label: 'Last 7 Days' },
+                  { value: '30d', label: 'Last 30 Days' },
+                  { value: 'Custom', label: 'Specific Date...' }
+                ]}
+              />
             </div>
           </div>
 
-          {(selectedProjectId !== 'All' || filterPayer !== 'All' || filterCategory !== 'All' || filterPaymentMode !== 'All') && (
+          {/* If Custom Date selected, show bespoke calendar picker */}
+          {filterDatePreset === 'Custom' && (
+            <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
+              <span className="text-xs font-semibold text-slate-500">Select Date:</span>
+              <div className="w-56">
+                <CustomDatePicker
+                  value={filterCustomDate}
+                  onChange={setFilterCustomDate}
+                  size="sm"
+                  placeholder="Choose date to filter"
+                />
+              </div>
+              {filterCustomDate && (
+                <button
+                  type="button"
+                  onClick={() => setFilterCustomDate('')}
+                  className="text-xs text-rose-500 hover:text-rose-700 font-semibold"
+                >
+                  Clear date
+                </button>
+              )}
+            </div>
+          )}
+
+          {(selectedProjectId !== 'All' || filterPayer !== 'All' || filterCategory !== 'All' || filterPaymentMode !== 'All' || filterDatePreset !== 'All' || filterCustomDate) && (
             <div className="pt-1 flex justify-end">
               <button
                 onClick={() => {
@@ -253,11 +326,13 @@ export function ExpensesTab({
                   setFilterPayer('All');
                   setFilterCategory('All');
                   setFilterPaymentMode('All');
+                  setFilterDatePreset('All');
+                  setFilterCustomDate('');
                 }}
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1"
+                className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 hover:underline transition-all"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Reset Filters</span>
+                <span>Reset All Filters</span>
               </button>
             </div>
           )}
