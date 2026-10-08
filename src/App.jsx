@@ -10,18 +10,21 @@ import {
   ProjectModal,
   TaskModal,
   ProofModal,
-  ImpactModal
+  ImpactModal,
+  PartnerModal
 } from './components/Modals';
-import { storageService } from './services/storage';
+import { storageService, DEFAULT_PARTNERS } from './services/storage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [partners, setPartners] = useState(DEFAULT_PARTNERS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectIdForExpenses, setSelectedProjectIdForExpenses] = useState('All');
+  const [selectedPayerForExpenses, setSelectedPayerForExpenses] = useState('All');
 
   // Dark / Light Theme State
   const [theme, setTheme] = useState(() => {
@@ -37,8 +40,10 @@ export default function App() {
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
       root.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
     localStorage.setItem('delizoo_theme_preference', theme);
   }, [theme]);
@@ -55,6 +60,7 @@ export default function App() {
   const [projectToEdit, setProjectToEdit] = useState(null);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
   const [proofModalData, setProofModalData] = useState(null); // { expense, project }
   const [impactModalData, setImpactModalData] = useState(null); // { expense, project }
@@ -65,6 +71,7 @@ export default function App() {
     setProjects(data.projects || []);
     setTasks(data.tasks || []);
     setExpenses(data.expenses || []);
+    setPartners(data.partners || DEFAULT_PARTNERS);
     setIsLoaded(true);
   }, []);
 
@@ -80,15 +87,6 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Dynamically derived unique payers list from user expenses
-  const existingPayers = useMemo(() => {
-    const set = new Set();
-    expenses.forEach(e => {
-      if (e.payer?.trim()) set.add(e.payer.trim());
-    });
-    return Array.from(set);
-  }, [expenses]);
 
   // Save Handlers
   const handleSaveExpense = useCallback((expense) => {
@@ -166,12 +164,18 @@ export default function App() {
     }
   }, []);
 
+  const handleSavePartners = useCallback((newPartners) => {
+    setPartners(newPartners);
+    storageService.savePartners(newPartners);
+  }, []);
+
   const handleClearData = useCallback(() => {
     if (confirm('Are you sure you want to permanently clear all stored projects, tasks, and expenditures on this device?')) {
       storageService.clearAllData();
       setProjects([]);
       setTasks([]);
       setExpenses([]);
+      setPartners(DEFAULT_PARTNERS);
     }
   }, []);
 
@@ -179,10 +183,16 @@ export default function App() {
     setProjects(imported.projects || []);
     setTasks(imported.tasks || []);
     setExpenses(imported.expenses || []);
+    setPartners(imported.partners || DEFAULT_PARTNERS);
   }, []);
 
   const handleSelectProjectForExpenses = useCallback((projectId) => {
     setSelectedProjectIdForExpenses(projectId);
+    setActiveTab('expenses');
+  }, []);
+
+  const handleSelectPayerForExpenses = useCallback((payerName) => {
+    setSelectedPayerForExpenses(payerName);
     setActiveTab('expenses');
   }, []);
 
@@ -212,11 +222,13 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
         onOpenProjectModal={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }}
+        onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         expenseCount={expenses.length}
         projectCount={projects.length}
         taskCount={tasks.length}
+        partnerCount={partners.length}
         theme={theme}
         toggleTheme={toggleTheme}
       />
@@ -228,8 +240,11 @@ export default function App() {
             projects={projects}
             tasks={tasks}
             expenses={expenses}
+            partners={partners}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
             onOpenProjectModal={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }}
+            onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
+            onSelectPayerForExpenses={handleSelectPayerForExpenses}
             onViewProof={handleViewProof}
             onViewImpact={handleViewImpact}
             setActiveTab={setActiveTab}
@@ -264,6 +279,7 @@ export default function App() {
           <ExpensesTab
             expenses={expenses}
             projects={projects}
+            partners={partners}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
             onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
             onDeleteExpense={handleDeleteExpense}
@@ -271,6 +287,8 @@ export default function App() {
             onViewImpact={handleViewImpact}
             selectedProjectId={selectedProjectIdForExpenses}
             setSelectedProjectId={setSelectedProjectIdForExpenses}
+            selectedPayer={selectedPayerForExpenses}
+            setSelectedPayer={setSelectedPayerForExpenses}
             searchQuery={searchQuery}
           />
         )}
@@ -280,6 +298,8 @@ export default function App() {
             projects={projects}
             tasks={tasks}
             expenses={expenses}
+            partners={partners}
+            onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
             onClearData={handleClearData}
             onImportComplete={handleImportComplete}
           />
@@ -317,7 +337,9 @@ export default function App() {
         onSave={handleSaveExpense}
         expenseToEdit={expenseToEdit}
         projects={projects}
-        existingPayers={existingPayers}
+        partners={partners}
+        expenses={expenses}
+        onOpenPartnerModal={() => { setIsExpenseModalOpen(false); setIsPartnerModalOpen(true); }}
       />
 
       <ProjectModal
@@ -332,6 +354,13 @@ export default function App() {
         onClose={() => setIsTaskModalOpen(false)}
         onSave={handleSaveTask}
         projects={projects}
+      />
+
+      <PartnerModal
+        isOpen={isPartnerModalOpen}
+        onClose={() => setIsPartnerModalOpen(false)}
+        partners={partners}
+        onSavePartners={handleSavePartners}
       />
 
       <ProofModal

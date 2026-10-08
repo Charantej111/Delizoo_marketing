@@ -9,9 +9,12 @@ import {
   TrendingUp,
   ShieldCheck,
   Coins,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  PieChart,
+  ArrowUpRight
 } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, DEFAULT_PARTNERS } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
@@ -19,6 +22,8 @@ export function ReportsTab({
   projects,
   tasks,
   expenses,
+  partners = DEFAULT_PARTNERS,
+  onOpenPartnerModal,
   onClearData,
   onImportComplete
 }) {
@@ -60,6 +65,10 @@ export function ReportsTab({
     return filteredExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
   }, [filteredExpenses]);
 
+  const totalCommittedCapital = useMemo(() => {
+    return partners.reduce((acc, p) => acc + (Number(p.investment) || 0), 0);
+  }, [partners]);
+
   const netVariance = totalBudget - totalSpent;
   const totalProofsCount = useMemo(() => {
     return filteredExpenses.filter(e => !!e.proofDataUrl).length;
@@ -81,26 +90,34 @@ export function ReportsTab({
     });
   }, [projects, filteredExpenses]);
 
-  // Dynamic funding sources
-  const fundingSources = useMemo(() => {
-    const map = {};
-    filteredExpenses.forEach(e => {
-      const payer = e.payer?.trim() || 'Unspecified';
-      if (!map[payer]) {
-        map[payer] = { amount: 0, count: 0, categories: new Set() };
-      }
-      map[payer].amount += Number(e.amount) || 0;
-      map[payer].count += 1;
-      if (e.category?.trim()) map[payer].categories.add(e.category.trim());
-    });
+  // Investor & Partner Capital Ledger Analytics
+  const partnerAuditLedger = useMemo(() => {
+    return partners.map(p => {
+      const pExpenses = filteredExpenses.filter(e => e.payer?.trim().toLowerCase() === p.name.trim().toLowerCase());
+      const spent = pExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+      const remaining = (Number(p.investment) || 0) - spent;
+      const share = totalSpent > 0 ? Math.round((spent / totalSpent) * 100) : 0;
+      
+      const catMap = {};
+      pExpenses.forEach(e => {
+        const cat = e.category?.trim() || 'General';
+        catMap[cat] = (catMap[cat] || 0) + (Number(e.amount) || 0);
+      });
 
-    return Object.entries(map).map(([payer, data]) => ({
-      payer,
-      amount: data.amount,
-      count: data.count,
-      categories: Array.from(data.categories).join(', ')
-    })).sort((a, b) => b.amount - a.amount);
-  }, [filteredExpenses]);
+      const catSummary = Object.entries(catMap)
+        .map(([cat, amt]) => `${cat}: ₹${amt.toLocaleString('en-IN')}`)
+        .join(', ');
+
+      return {
+        ...p,
+        spent,
+        remaining,
+        share,
+        count: pExpenses.length,
+        categories: catSummary || 'None'
+      };
+    });
+  }, [partners, filteredExpenses, totalSpent]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -108,7 +125,7 @@ export function ReportsTab({
     setImportStatus('Restoring database from backup file...');
     try {
       const result = await storageService.importBackup(file);
-      setImportStatus(`Successfully restored ${result.projects.length} projects and ${result.expenses.length} expenses!`);
+      setImportStatus(`Successfully restored ${result.projects.length} projects, ${result.expenses.length} expenses, and ${result.partners.length} partner profiles!`);
       if (onImportComplete) onImportComplete(result);
       setTimeout(() => setImportStatus(''), 4000);
     } catch (err) {
@@ -125,7 +142,7 @@ export function ReportsTab({
             Audit Reports & Database Management
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Export accounting spreadsheets, verify contributor funding trails, and manage offline backups.
+            Export accounting spreadsheets, verify 6-founder capital trails, and manage offline backups.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -152,12 +169,12 @@ export function ReportsTab({
         <div className="glass-panel rounded-2xl p-4 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-            Total Allocated Budget
+            Total Partner Capital Pool
           </span>
           <p className="text-xl sm:text-2xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight">
-            ₹{totalBudget.toLocaleString('en-IN')}
+            ₹{totalCommittedCapital.toLocaleString('en-IN')}
           </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Across {projects.length} recorded projects</p>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{partners.length} Investors / Partners</p>
         </div>
 
         <div className="glass-panel rounded-2xl p-4 space-y-1">
@@ -173,15 +190,15 @@ export function ReportsTab({
 
         <div className="glass-panel rounded-2xl p-4 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Net Budget Variance
+            Net Remaining Capital
           </span>
           <p className={`text-xl sm:text-2xl font-black font-mono-num tracking-tight ${
-            netVariance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
+            (totalCommittedCapital - totalSpent) >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
           }`}>
-            {netVariance >= 0 ? `+₹${netVariance.toLocaleString('en-IN')}` : `-₹${Math.abs(netVariance).toLocaleString('en-IN')}`}
+            ₹{(totalCommittedCapital - totalSpent).toLocaleString('en-IN')}
           </p>
           <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-            {netVariance >= 0 ? 'Surplus / Available balance' : 'Over allocated budget'}
+            {(totalCommittedCapital - totalSpent) >= 0 ? 'Available capital pool' : 'Exceeded capital allocation'}
           </p>
         </div>
 
@@ -194,7 +211,7 @@ export function ReportsTab({
             {totalProofsCount} <span className="text-xs font-normal text-zinc-400 dark:text-zinc-500">/ {filteredExpenses.length}</span>
           </p>
           <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-            {filteredExpenses.length > 0 ? `${Math.round((totalProofsCount / filteredExpenses.length) * 100)}% audit compliance` : 'No expenses recorded'}
+            {filteredExpenses.length > 0 ? `${Math.round((totalProofsCount / filteredExpenses.length) * 100)}% audit compliance` : 'No bills in range'}
           </p>
         </div>
       </div>
@@ -213,18 +230,18 @@ export function ReportsTab({
               </h3>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              All records, payment proofs, and attachments are encrypted and preserved directly inside your browser storage.
+              All records, partner allocations, and receipts are preserved privately on this machine.
             </p>
           </div>
           <div className="text-right text-xs font-mono-num font-bold text-zinc-800 dark:text-zinc-300 hidden sm:block">
-            {projects.length} Projects • {tasks.length} Tasks • {expenses.length} Expenses
+            {partners.length} Partners • {projects.length} Projects • {tasks.length} Tasks • {expenses.length} Expenses
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           {/* Export Backup JSON */}
           <button
-            onClick={() => storageService.exportBackup(projects, tasks, expenses)}
+            onClick={() => storageService.exportBackup(projects, tasks, expenses, partners)}
             className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/90 hover:bg-white dark:hover:bg-zinc-800 text-left transition-all shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer group"
           >
             <div className="flex items-center gap-2 mb-1">
@@ -232,7 +249,7 @@ export function ReportsTab({
               <span className="text-xs font-bold text-zinc-900 dark:text-white">Export Backup (JSON)</span>
             </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-              Downloads a complete standalone JSON archive of all projects, tasks, receipts, and images.
+              Downloads a complete snapshot of projects, tasks, partner investments, and receipt images.
             </p>
           </button>
 
@@ -254,7 +271,7 @@ export function ReportsTab({
                 <span className="text-xs font-bold text-zinc-900 dark:text-white">Restore Backup (JSON)</span>
               </div>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Import and restore records from a previously downloaded JSON backup file.
+                Import and restore records from a previously saved JSON backup file.
               </p>
             </button>
           </div>
@@ -280,6 +297,88 @@ export function ReportsTab({
             <span>{importStatus}</span>
           </div>
         )}
+      </div>
+
+      {/* SECTION: 6 Partners & Investors Capital Audit Ledger */}
+      <div className="glass-panel rounded-2xl overflow-hidden shadow-2xs">
+        <div className="p-4 border-b border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Founders & Investors Capital Allocation Audit Ledger ("Who Paid")</span>
+              </h3>
+            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Audited individual capital pools, disbursements, and category spending breakdown
+            </p>
+          </div>
+
+          {onOpenPartnerModal && (
+            <button
+              onClick={onOpenPartnerModal}
+              className="self-start sm:self-center px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer no-print"
+            >
+              <span>Edit Capital Pool</span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="py-3 px-4">Partner / Contributor</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4">Committed Investment</th>
+                <th className="py-3 px-4">Total Disbursed</th>
+                <th className="py-3 px-4">Remaining Balance</th>
+                <th className="py-3 px-4">Share of Spend</th>
+                <th className="py-3 px-4">Categories Supported</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              {partnerAuditLedger.map(p => (
+                <tr key={p.id || p.name} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
+                  <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200/80 dark:border-emerald-800/80">
+                      {p.name}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-400 font-medium">
+                    {p.role}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num text-zinc-900 dark:text-white font-bold">
+                    ₹{p.investment.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num font-black text-sm text-emerald-600 dark:text-emerald-400">
+                    ₹{p.spent.toLocaleString('en-IN')}
+                  </td>
+                  <td className={`py-3.5 px-4 font-mono-num font-bold ${
+                    p.remaining >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
+                  }`}>
+                    {p.remaining >= 0 ? `₹${p.remaining.toLocaleString('en-IN')}` : `-₹${Math.abs(p.remaining).toLocaleString('en-IN')}`}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-14 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(p.share, 100)}%` }}
+                        />
+                      </div>
+                      <span className="font-mono-num font-bold text-zinc-700 dark:text-zinc-300">{p.share}%</span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
+                    {p.categories}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Project Audit Statement */}
@@ -403,67 +502,6 @@ export function ReportsTab({
                     </td>
                   </tr>
                 ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Funding Contributor Accountability */}
-      <div className="glass-panel rounded-2xl overflow-hidden shadow-2xs">
-        <div className="p-4 border-b border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/90">
-          <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">Funding Contributor Accountability Ledger ("Who Gave Amount")</h3>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Breakdown of exact capital disbursed by team members and investors
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
-              <tr>
-                <th className="py-3 px-4">Contributor Name / Pool</th>
-                <th className="py-3 px-4">Total Amount Funded</th>
-                <th className="py-3 px-4">Transaction Count</th>
-                <th className="py-3 px-4">Share of Spend</th>
-                <th className="py-3 px-4">Categories Supported</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-              {fundingSources.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="py-10 text-center text-zinc-400 dark:text-zinc-500">
-                    No funding sources recorded yet. Record expenses with "Who gave amount" to view contributor audit.
-                  </td>
-                </tr>
-              ) : (
-                fundingSources.map(f => {
-                  const share = totalSpent > 0 ? Math.round((f.amount / totalSpent) * 100) : 0;
-                  return (
-                    <tr key={f.payer} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white">
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200/80 dark:border-emerald-800/80">
-                          {f.payer}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono-num font-black text-sm text-zinc-900 dark:text-white">
-                        ₹{f.amount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono-num text-zinc-500 dark:text-zinc-400">{f.count} txns</td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full"
-                              style={{ width: `${Math.min(share, 100)}%` }}
-                            />
-                          </div>
-                          <span className="font-mono-num font-bold text-zinc-700 dark:text-zinc-300">{share}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-zinc-500 dark:text-zinc-400">{f.categories || 'General'}</td>
-                    </tr>
-                  );
-                })
               )}
             </tbody>
           </table>

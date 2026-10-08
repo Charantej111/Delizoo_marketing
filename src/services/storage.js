@@ -1,10 +1,31 @@
 // Local Device Database Storage Service for Delizoo Tracker
 // 100% Dynamic, 0% Mock Data
 
+export const DEFAULT_PARTNERS = [
+  { id: 'partner-1', name: 'N Charan Tej', role: 'Founder & Lead', investment: 50000, color: '#10b981' },
+  { id: 'partner-2', name: 'G Pavan', role: 'Partner / Ops', investment: 50000, color: '#06b6d4' },
+  { id: 'partner-3', name: 'G Sunil', role: 'Partner / Growth', investment: 50000, color: '#8b5cf6' },
+  { id: 'partner-4', name: 'M Nareen', role: 'Partner / Marketing', investment: 50000, color: '#f59e0b' },
+  { id: 'partner-5', name: 'J Sandeep', role: 'Partner / Tech', investment: 50000, color: '#ec4899' },
+  { id: 'partner-6', name: 'Reserve Partner', role: 'Partner / Angel Pool', investment: 50000, color: '#6366f1' }
+];
+
+export const POPULAR_CATEGORIES = [
+  { label: 'Ads & Promotion', icon: '📣', desc: 'Meta, Google, Insta & influencer ads' },
+  { label: 'Visiting Cards & Printing', icon: '📇', desc: 'Flyers, menu cards, standees & banners' },
+  { label: 'Rider Fleet & Kits', icon: '🛵', desc: 'Delivery bags, shirts & rider ops' },
+  { label: 'Packaging & Restaurant Ops', icon: '📦', desc: 'Boxes, cutlery, tapes & restaurant kits' },
+  { label: 'Tech & Domain', icon: '💻', desc: 'Hosting, domain, SMS gateway & software' },
+  { label: 'Fuel & Travel', icon: '⛽', desc: 'On-ground commute & local logistics' },
+  { label: 'Food Sampling', icon: '🍕', desc: 'College campaign & food testing' },
+  { label: 'Office & Supplies', icon: '🏢', desc: 'General office & misc utility' }
+];
+
 const STORAGE_KEYS = {
   PROJECTS: 'delizoo_user_projects',
   TASKS: 'delizoo_user_tasks',
-  EXPENSES: 'delizoo_user_expenses'
+  EXPENSES: 'delizoo_user_expenses',
+  PARTNERS: 'delizoo_user_partners'
 };
 
 export const storageService = {
@@ -14,10 +35,12 @@ export const storageService = {
       const projects = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROJECTS) || '[]');
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       const expenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
-      return { projects, tasks, expenses };
+      const savedPartners = localStorage.getItem(STORAGE_KEYS.PARTNERS);
+      const partners = savedPartners ? JSON.parse(savedPartners) : DEFAULT_PARTNERS;
+      return { projects, tasks, expenses, partners };
     } catch (e) {
       console.error('Failed to parse local device storage data:', e);
-      return { projects: [], tasks: [], expenses: [] };
+      return { projects: [], tasks: [], expenses: [], partners: DEFAULT_PARTNERS };
     }
   },
 
@@ -33,27 +56,34 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
   },
 
+  savePartners(partners) {
+    localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(partners));
+  },
+
   clearAllData() {
     localStorage.removeItem(STORAGE_KEYS.PROJECTS);
     localStorage.removeItem(STORAGE_KEYS.TASKS);
     localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+    localStorage.removeItem(STORAGE_KEYS.PARTNERS);
   },
 
   // Export User Database to JSON file
-  exportBackup(projects, tasks, expenses) {
+  exportBackup(projects, tasks, expenses, partners = DEFAULT_PARTNERS) {
     const payload = {
       app: "Delizoo Project & Expense Tracker",
-      version: "2.0.0",
+      version: "2.1.0",
       exportedAt: new Date().toISOString(),
       counts: {
         projects: projects.length,
         tasks: tasks.length,
-        expenses: expenses.length
+        expenses: expenses.length,
+        partners: partners.length
       },
       data: {
         projects,
         tasks,
-        expenses
+        expenses,
+        partners
       }
     };
 
@@ -82,12 +112,14 @@ export const storageService = {
           const projects = parsed.data.projects || [];
           const tasks = parsed.data.tasks || [];
           const expenses = parsed.data.expenses || [];
+          const partners = parsed.data.partners || DEFAULT_PARTNERS;
 
           this.saveProjects(projects);
           this.saveTasks(tasks);
           this.saveExpenses(expenses);
+          this.savePartners(partners);
 
-          resolve({ projects, tasks, expenses });
+          resolve({ projects, tasks, expenses, partners });
         } catch (err) {
           reject(err);
         }

@@ -9,6 +9,7 @@ import {
   IndianRupee,
   Search,
   HardDrive,
+  Users,
   X,
   Sun,
   Moon
@@ -19,11 +20,13 @@ export function Navbar({
   setActiveTab,
   onOpenExpenseModal,
   onOpenProjectModal,
+  onOpenPartnerModal,
   searchQuery,
   setSearchQuery,
   expenseCount,
   projectCount,
   taskCount,
+  partnerCount = 6,
   theme = 'light',
   toggleTheme
 }) {
@@ -109,16 +112,22 @@ export function Navbar({
               </button>
             )}
 
-            {/* Local DB Status Pill (Hidden on mobile) */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
-              <HardDrive className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Device DB</span>
-            </div>
+            {/* Founders Pool Button */}
+            {onOpenPartnerModal && (
+              <button
+                onClick={onOpenPartnerModal}
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                title="Manage 6 Founders Capital Pool"
+              >
+                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>6 Founders ({partnerCount})</span>
+              </button>
+            )}
 
             {/* New Project Button */}
             <button
               onClick={onOpenProjectModal}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Project</span>
@@ -127,7 +136,7 @@ export function Navbar({
             {/* Log Expense Button */}
             <button
               onClick={onOpenExpenseModal}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
             >
               <IndianRupee className="w-3.5 h-3.5" />
               <span>Log Expense</span>
@@ -148,44 +157,35 @@ export function Navbar({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search projects, vendors, UTR..."
-                className="w-full pl-9 pr-8 py-2 text-xs glass-input rounded-xl text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
+                className="w-full pl-9 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
               />
-              <button
-                onClick={() => { setIsMobileSearchOpen(false); setSearchQuery(''); }}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 dark:text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Modern Frosted Scrollable Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 border-t border-zinc-200/50 dark:border-zinc-800">
-        <nav className="flex space-x-1 sm:space-x-1.5 overflow-x-auto py-1.5 scrollbar-none">
+        {/* Nav Tabs */}
+        <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 scrollbar-none border-t border-zinc-200/60 dark:border-zinc-800/80">
           {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
             const Icon = tab.icon;
-
+            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-3 text-xs font-semibold whitespace-nowrap rounded-lg transition-all ${
+                className={`inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/70'
+                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-zinc-800/70'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400'}`} />
+                <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
-                {tab.count !== undefined && (
+                {tab.count !== undefined && tab.count > 0 && (
                   <span
-                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono-num font-bold ${
+                    className={`text-[10px] font-mono-num font-extrabold px-1.5 py-0.2 rounded-full ${
                       isActive
-                        ? 'bg-zinc-800 dark:bg-zinc-200 text-zinc-200 dark:text-zinc-800'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                        ? 'bg-white/20 dark:bg-zinc-900/30 text-white dark:text-zinc-950'
+                        : 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
                     }`}
                   >
                     {tab.count}

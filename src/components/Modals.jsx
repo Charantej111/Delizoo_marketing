@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X,
   Upload,
@@ -9,14 +9,29 @@ import {
   Eye,
   Trash2,
   FileText,
-  UserCheck
+  UserCheck,
+  Users,
+  Plus,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
-// 1. Expense Modal (Add / Edit)
-export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects, existingPayers = [] }) {
+// 1. Expense Modal (Add / Edit) with Partner & Category Integration
+export function ExpenseModal({
+  isOpen,
+  onClose,
+  onSave,
+  expenseToEdit,
+  projects,
+  partners = DEFAULT_PARTNERS,
+  expenses = [],
+  onOpenPartnerModal
+}) {
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
@@ -24,9 +39,9 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
     amount: '',
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
-    payer: '',
+    payer: partners[0]?.name || 'N Charan Tej',
     vendor: '',
-    category: 'Marketing & Print',
+    category: 'Ads & Promotion',
     paymentMode: 'UPI',
     utrNumber: '',
     howItHelped: '',
@@ -37,6 +52,29 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
 
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Compute live spent & remaining capital per partner
+  const partnerSpendStats = useMemo(() => {
+    const map = {};
+    partners.forEach(p => {
+      map[p.name] = {
+        investment: Number(p.investment) || 0,
+        spent: 0,
+        color: p.color || '#10b981',
+        role: p.role || 'Partner'
+      };
+    });
+
+    expenses.forEach(e => {
+      if (expenseToEdit && e.id === expenseToEdit.id) return; // ignore current when editing
+      const payer = e.payer?.trim();
+      if (map[payer]) {
+        map[payer].spent += Number(e.amount) || 0;
+      }
+    });
+
+    return map;
+  }, [partners, expenses, expenseToEdit]);
 
   useEffect(() => {
     if (expenseToEdit) {
@@ -50,9 +88,9 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
         amount: '',
         date: new Date().toISOString().split('T')[0],
         time: new Date().toTimeString().slice(0, 5),
-        payer: existingPayers[0] || '',
+        payer: partners[0]?.name || 'N Charan Tej',
         vendor: '',
-        category: 'Marketing & Print',
+        category: 'Ads & Promotion',
         paymentMode: 'UPI',
         utrNumber: '',
         howItHelped: '',
@@ -61,7 +99,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
         proofType: ''
       });
     }
-  }, [expenseToEdit, projects]);
+  }, [expenseToEdit, projects, partners]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -89,7 +127,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
       return;
     }
     if (!formData.payer.trim()) {
-      alert('Please enter who gave or paid the amount.');
+      alert('Please select or enter who paid this amount.');
       return;
     }
 
@@ -105,17 +143,26 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
     onClose();
   };
 
+  // Selected partner's remaining calculation
+  const currentPayerStat = partnerSpendStats[formData.payer.trim()];
+  const currentAmountNum = Number(formData.amount) || 0;
+  const payerRemaining = currentPayerStat ? currentPayerStat.investment - currentPayerStat.spent : null;
+  const payerRemainingAfterThis = payerRemaining !== null ? payerRemaining - currentAmountNum : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/70 dark:bg-black/85 backdrop-blur-xs">
       <div className="glass-modal rounded-3xl max-w-2xl w-full max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
           <div>
-            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight">
-              {expenseToEdit ? 'Edit Expenditure' : 'Record Project Expenditure'}
+            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+              <span>{expenseToEdit ? 'Edit Expenditure' : 'Record Project Expenditure'}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800">
+                Live Audit
+              </span>
             </h3>
             <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400">
-              Track amount, who funded it, payment proof, and ROI impact.
+              Track amount, investor capital deduction, payment proof, and ROI impact.
             </p>
           </div>
           <button
@@ -127,7 +174,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4.5 text-xs">
           {/* Amount and Linked Project */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
@@ -172,6 +219,128 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
             </div>
           </div>
 
+          {/* Who gave the amount (Investor / Partner Select) */}
+          <div className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">
+                WHO PAID / FUNDED THIS (CAPITAL SOURCE) *
+              </label>
+              {onOpenPartnerModal && (
+                <button
+                  type="button"
+                  onClick={onOpenPartnerModal}
+                  className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Users className="w-3 h-3" />
+                  <span>Manage Investors & Capital</span>
+                </button>
+              )}
+            </div>
+
+            {/* Quick 1-click Partner Selection Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {partners.map(p => {
+                const stat = partnerSpendStats[p.name] || { investment: p.investment, spent: 0 };
+                const rem = stat.investment - stat.spent;
+                const isSelected = formData.payer === p.name;
+
+                return (
+                  <button
+                    key={p.id || p.name}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, payer: p.name })}
+                    className={`p-2 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
+                      isSelected
+                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 shadow-sm scale-[1.02]'
+                        : 'bg-white dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`font-bold text-xs truncate ${isSelected ? 'text-white dark:text-zinc-950' : 'text-zinc-900 dark:text-white'}`}>
+                        {p.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono-num">
+                      <span className={isSelected ? 'text-zinc-300 dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400'}>
+                        Pool: ₹{p.investment.toLocaleString('en-IN')}
+                      </span>
+                      <span className={`font-bold ${
+                        rem >= 0
+                          ? isSelected ? 'text-emerald-300 dark:text-zinc-950 font-black' : 'text-emerald-600 dark:text-emerald-400'
+                          : isSelected ? 'text-rose-300 dark:text-rose-950' : 'text-rose-600 dark:text-rose-400'
+                      }`}>
+                        ₹{rem.toLocaleString('en-IN')} rem
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Manual input / override */}
+            <div className="pt-1">
+              <input
+                type="text"
+                required
+                value={formData.payer}
+                onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
+                placeholder="Or type custom payer name (e.g. Founders Pool, Petty Cash)"
+                className="w-full px-3 py-1.5 text-xs glass-input rounded-xl font-medium text-zinc-900 dark:text-white outline-none"
+              />
+            </div>
+
+            {/* Live deduction impact note */}
+            {currentPayerStat && (
+              <div className={`p-2 rounded-xl text-[11px] font-medium flex items-center justify-between ${
+                payerRemainingAfterThis >= 0
+                  ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20'
+                  : 'bg-rose-500/10 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/20'
+              }`}>
+                <span>
+                  {formData.payer} balance: <strong>₹{payerRemaining.toLocaleString('en-IN')}</strong>
+                </span>
+                <span>
+                  After this spend: <strong>₹{payerRemainingAfterThis.toLocaleString('en-IN')}</strong> {payerRemainingAfterThis < 0 ? '(Exceeds allocated pool)' : ''}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Spend Category with 1-Click Suggestions */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">SPEND CATEGORY / TYPE *</label>
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Pick quick tag or type custom</span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR_CATEGORIES.map(cat => (
+                <button
+                  key={cat.label}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, category: cat.label })}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                    formData.category === cat.label
+                      ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
+                      : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                  }`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="text"
+              required
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              placeholder="e.g. Meta Ads, Visiting Cards & Posters, Rider Shirts, Tech Domain"
+              className="w-full px-3 py-2 glass-input rounded-xl font-medium text-zinc-800 dark:text-zinc-100 outline-none"
+            />
+          </div>
+
           {/* Date and Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
@@ -194,35 +363,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
             </div>
           </div>
 
-          {/* Who gave the amount (Payer) */}
-          <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">WHO GAVE THE AMOUNT (FUNDED BY / PAID BY) *</label>
-            <input
-              type="text"
-              required
-              value={formData.payer}
-              onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
-              placeholder="e.g. Your Name, Founders Pool, Marketing Cash"
-              className="w-full px-3 py-2 glass-input rounded-xl font-bold text-zinc-900 dark:text-white outline-none"
-            />
-            {existingPayers.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Quick select:</span>
-                {existingPayers.slice(0, 5).map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, payer: p })}
-                    className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Vendor and Category */}
+          {/* Vendor and Payment Mode */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">VENDOR / RECIPIENT</label>
@@ -230,24 +371,10 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
                 type="text"
                 value={formData.vendor}
                 onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                placeholder="e.g. Sri Krishna Graphics, Meta Ads"
+                placeholder="e.g. Sri Krishna Graphics, Meta Ads, Indian Oil"
                 className="w-full px-3 py-2 glass-input rounded-xl font-medium text-zinc-800 dark:text-zinc-100 outline-none"
               />
             </div>
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">CATEGORY</label>
-              <input
-                type="text"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="e.g. Marketing, Printing, Fuel, Tech, Rider Kit"
-                className="w-full px-3 py-2 glass-input rounded-xl font-medium text-zinc-800 dark:text-zinc-100 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Payment Mode & UTR Ref */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">PAYMENT MODE</label>
               <CustomSelect
@@ -261,16 +388,18 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
                 ]}
               />
             </div>
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">UTR / TRANSACTION REF</label>
-              <input
-                type="text"
-                value={formData.utrNumber}
-                onChange={(e) => setFormData({ ...formData, utrNumber: e.target.value })}
-                placeholder="e.g. UPI-428819003817"
-                className="w-full px-3 py-2 glass-input rounded-xl font-mono-num font-semibold text-zinc-800 dark:text-zinc-100 outline-none"
-              />
-            </div>
+          </div>
+
+          {/* UTR / Transaction Ref */}
+          <div>
+            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">UTR / TRANSACTION REF (OPTIONAL)</label>
+            <input
+              type="text"
+              value={formData.utrNumber}
+              onChange={(e) => setFormData({ ...formData, utrNumber: e.target.value })}
+              placeholder="e.g. UPI-428819003817 / TXN-998822"
+              className="w-full px-3 py-2 glass-input rounded-xl font-mono-num font-semibold text-zinc-800 dark:text-zinc-100 outline-none"
+            />
           </div>
 
           {/* How It Helped (Impact & ROI) */}
@@ -280,7 +409,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expenseToEdit, projects,
               <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">Accountability</span>
             </div>
             <textarea
-              rows={3}
+              rows={2}
               required
               value={formData.howItHelped}
               onChange={(e) => setFormData({ ...formData, howItHelped: e.target.value })}
@@ -376,15 +505,18 @@ export function ProjectModal({ isOpen, onClose, onSave, projectToEdit }) {
     lead: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
-    priority: 'High',
-    status: 'In Progress',
     description: '',
+    status: 'In Progress',
     progress: 0
   });
 
   useEffect(() => {
     if (projectToEdit) {
-      setFormData(projectToEdit);
+      setFormData({
+        ...projectToEdit,
+        budget: projectToEdit.budget || '',
+        progress: projectToEdit.progress || 0
+      });
     } else {
       setFormData({
         title: '',
@@ -393,9 +525,8 @@ export function ProjectModal({ isOpen, onClose, onSave, projectToEdit }) {
         lead: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: '',
-        priority: 'High',
-        status: 'In Progress',
         description: '',
+        status: 'In Progress',
         progress: 0
       });
     }
@@ -833,6 +964,202 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
             Done
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 6. Partner & Investor Capital Management Modal (New!)
+export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
+  if (!isOpen) return null;
+
+  const [partnerList, setPartnerList] = useState(() => {
+    return (partners && partners.length > 0 ? partners : DEFAULT_PARTNERS).map(p => ({
+      ...p,
+      investment: Number(p.investment) || 0
+    }));
+  });
+
+  const totalPool = useMemo(() => {
+    return partnerList.reduce((acc, p) => acc + (Number(p.investment) || 0), 0);
+  }, [partnerList]);
+
+  const handleUpdate = (idx, field, value) => {
+    setPartnerList(prev => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], [field]: value };
+      return copy;
+    });
+  };
+
+  const handleAddPartner = () => {
+    const newId = 'partner-' + Date.now();
+    setPartnerList(prev => [
+      ...prev,
+      { id: newId, name: `Partner ${prev.length + 1}`, role: 'Investor / Partner', investment: 50000, color: '#10b981' }
+    ]);
+  };
+
+  const handleRemovePartner = (idx) => {
+    if (partnerList.length <= 1) {
+      alert('At least 1 partner / investor must be configured.');
+      return;
+    }
+    setPartnerList(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleResetDefaults = () => {
+    if (confirm('Reset partner list to default 6 core partners?')) {
+      setPartnerList(DEFAULT_PARTNERS);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSavePartners(partnerList);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/70 dark:bg-black/85 backdrop-blur-xs">
+      <div className="glass-modal rounded-3xl max-w-xl w-full max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
+          <div>
+            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <span>Investors & Capital Allocation</span>
+            </h3>
+            <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400">
+              Configure partner names, roles, and committed investment pools.
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
+          {/* Total Capital Committed Banner */}
+          <div className="p-3.5 rounded-2xl bg-zinc-100/90 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Total Combined Capital Pool
+              </span>
+              <p className="text-lg sm:text-xl font-black font-mono-num text-zinc-900 dark:text-white mt-0.5">
+                ₹{totalPool.toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                {partnerList.length} Active Partners
+              </span>
+            </div>
+          </div>
+
+          {/* List of Partners */}
+          <div className="space-y-3">
+            {partnerList.map((p, idx) => (
+              <div
+                key={p.id || idx}
+                className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs space-y-2.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="w-6 h-6 rounded-lg bg-zinc-100 dark:bg-zinc-800 font-bold text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={p.name}
+                      onChange={(e) => handleUpdate(idx, 'name', e.target.value)}
+                      placeholder="Partner Name"
+                      className="font-bold text-xs text-zinc-900 dark:text-white glass-input px-2.5 py-1 rounded-lg w-full outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePartner(idx)}
+                    className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    title="Remove partner"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
+                      ROLE / DESIGNATION
+                    </label>
+                    <input
+                      type="text"
+                      value={p.role}
+                      onChange={(e) => handleUpdate(idx, 'role', e.target.value)}
+                      placeholder="e.g. Lead, Marketing, Tech"
+                      className="w-full text-[11px] font-medium text-zinc-800 dark:text-zinc-200 glass-input px-2.5 py-1 rounded-lg outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
+                      INVESTMENT POOL (INR ₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      required
+                      value={p.investment}
+                      onChange={(e) => handleUpdate(idx, 'investment', Number(e.target.value))}
+                      placeholder="e.g. 50000"
+                      className="w-full text-[11px] font-mono-num font-bold text-zinc-900 dark:text-white glass-input px-2.5 py-1 rounded-lg outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Partner & Reset buttons */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={handleAddPartner}
+              className="px-3 py-1.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-800 dark:hover:border-zinc-400 text-zinc-700 dark:text-zinc-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Another Partner</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline cursor-pointer"
+            >
+              Reset to 6 Founders
+            </button>
+          </div>
+
+          {/* Modal Footer Actions */}
+          <div className="pt-3 border-t border-zinc-200/60 dark:border-zinc-800 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold text-xs shadow-sm transition-all cursor-pointer"
+            >
+              Save Capital Commitments
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
