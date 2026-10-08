@@ -6,61 +6,59 @@ import {
   Edit2,
   Download,
   IndianRupee,
-  FileCheck,
   User,
   RotateCcw,
-  Sparkles,
   Calendar,
   Layers,
   Tag,
-  Users
+  Users,
+  FileCheck
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
-import { storageService, DEFAULT_PARTNERS, POPULAR_CATEGORIES } from '../services/storage';
+import { storageService, DEFAULT_PARTNERS, POPULAR_CATEGORIES, SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
 export function ExpensesTab({
   expenses,
-  projects,
   partners = DEFAULT_PARTNERS,
   onOpenExpenseModal,
   onEditExpense,
   onDeleteExpense,
   onViewProof,
   onViewImpact,
-  selectedProjectId,
-  setSelectedProjectId,
+  selectedSpendArea = 'All',
+  setSelectedSpendArea,
   selectedPayer = 'All',
   setSelectedPayer,
   searchQuery
 }) {
   const [filterPayer, setFilterPayer] = useState(selectedPayer || 'All');
+  const [filterSpendArea, setFilterSpendArea] = useState(selectedSpendArea || 'All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPaymentMode, setFilterPaymentMode] = useState('All');
   const [filterDatePreset, setFilterDatePreset] = useState('All');
   const [filterCustomDate, setFilterCustomDate] = useState('');
-  const [sortBy, setSortBy] = useState('date-desc'); // date-desc, date-asc, amount-desc, amount-asc
+  const [sortBy, setSortBy] = useState('date-desc');
 
-  // Keep internal filter in sync with prop if set from outside
+  // Keep internal filter in sync with props
   React.useEffect(() => {
-    if (selectedPayer) {
-      setFilterPayer(selectedPayer);
-    }
+    if (selectedPayer) setFilterPayer(selectedPayer);
   }, [selectedPayer]);
 
-  const projMap = useMemo(() => {
-    const map = {};
-    projects.forEach(p => { map[p.id] = p; });
-    return map;
-  }, [projects]);
+  React.useEffect(() => {
+    if (selectedSpendArea) setFilterSpendArea(selectedSpendArea);
+  }, [selectedSpendArea]);
 
-  // Combine predefined partners with any additional unique payers found in expenses
+  // Combine predefined 6 partners and deduplicate any legacy aliases
   const allPayers = useMemo(() => {
     const set = new Set();
     partners.forEach(p => set.add(p.name));
     expenses.forEach(e => {
-      if (e.payer?.trim()) set.add(e.payer.trim());
+      if (e.payer?.trim()) {
+        const normalized = normalizePayerName(e.payer, partners);
+        set.add(normalized);
+      }
     });
     return ['All', ...Array.from(set)];
   }, [partners, expenses]);
@@ -77,8 +75,16 @@ export function ExpensesTab({
 
   // Dynamic filter
   const filteredExpenses = expenses.filter(e => {
-    if (selectedProjectId && selectedProjectId !== 'All' && e.projectId !== selectedProjectId) return false;
-    if (filterPayer !== 'All' && e.payer?.trim().toLowerCase() !== filterPayer.toLowerCase()) return false;
+    if (filterSpendArea !== 'All') {
+      const area = e.spendArea || e.category || '';
+      if (area.toLowerCase() !== filterSpendArea.toLowerCase()) return false;
+    }
+    
+    if (filterPayer !== 'All') {
+      const normalizedPayer = normalizePayerName(e.payer, partners);
+      if (normalizedPayer.toLowerCase() !== filterPayer.toLowerCase()) return false;
+    }
+
     if (filterCategory !== 'All' && e.category?.trim().toLowerCase() !== filterCategory.toLowerCase()) return false;
     if (filterPaymentMode !== 'All' && !(e.paymentMode || '').includes(filterPaymentMode)) return false;
 
@@ -105,12 +111,12 @@ export function ExpensesTab({
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchVendor = (e.vendor || '').toLowerCase().includes(q);
-      const matchPayer = (e.payer || '').toLowerCase().includes(q);
+      const matchPayer = (e.payer || '').toLowerCase().includes(q) || normalizePayerName(e.payer, partners).toLowerCase().includes(q);
       const matchCategory = (e.category || '').toLowerCase().includes(q);
+      const matchSpendArea = (e.spendArea || '').toLowerCase().includes(q);
       const matchUtr = (e.utrNumber || '').toLowerCase().includes(q);
       const matchImpact = (e.howItHelped || '').toLowerCase().includes(q);
-      const matchProj = (projMap[e.projectId]?.title || '').toLowerCase().includes(q);
-      if (!matchVendor && !matchPayer && !matchCategory && !matchUtr && !matchImpact && !matchProj) return false;
+      if (!matchVendor && !matchPayer && !matchCategory && !matchSpendArea && !matchUtr && !matchImpact) return false;
     }
     return true;
   });
@@ -140,13 +146,18 @@ export function ExpensesTab({
     if (setSelectedPayer) setSelectedPayer(payer);
   };
 
+  const handleSpendAreaChange = (area) => {
+    setFilterSpendArea(area);
+    if (setSelectedSpendArea) setSelectedSpendArea(area);
+  };
+
   return (
     <div className="space-y-5 sm:space-y-6 pb-12">
       {/* Financial Metrics Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
           <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-            Total Spent in View
+            Filtered Total Spent
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white">
             ₹{totalFilteredSpent.toLocaleString('en-IN')}
@@ -158,27 +169,27 @@ export function ExpensesTab({
 
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
           <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-            Verified Receipts
+            Receipt Verification
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400">
             {proofCount} / {sortedExpenses.length}
           </div>
           <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             {sortedExpenses.length > 0 && proofCount === sortedExpenses.length
-              ? '100% verified compliance'
+              ? 'All receipts verified'
               : `${sortedExpenses.length - proofCount} pending receipts`}
           </div>
         </div>
 
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
           <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-            Active Filter
+            Active Filter Scope
           </span>
           <div className="text-sm font-bold text-zinc-900 dark:text-white truncate mt-1">
-            {filterPayer !== 'All' ? `Paid by: ${filterPayer}` : filterCategory !== 'All' ? `Type: ${filterCategory}` : 'All Team Transactions'}
+            {filterPayer !== 'All' ? `Partner: ${filterPayer}` : filterSpendArea !== 'All' ? `Area: ${filterSpendArea}` : 'All Venture Operations'}
           </div>
           <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 font-mono-num">
-            {sortedExpenses.length} bills displayed
+            {sortedExpenses.length} transactions shown
           </div>
         </div>
 
@@ -187,11 +198,11 @@ export function ExpensesTab({
             <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
               Quick Actions
             </span>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">Export ledger or record bill</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">Export audit ledger or record spend</div>
           </div>
           <div className="flex items-center gap-2 mt-3">
             <button
-              onClick={() => storageService.exportCsv(expenses, projects)}
+              onClick={() => storageService.exportCsv(expenses)}
               disabled={expenses.length === 0}
               className="px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50 cursor-pointer"
             >
@@ -208,10 +219,10 @@ export function ExpensesTab({
         </div>
       </div>
 
-      {/* Dynamic Filter Controls & Quick Partner Chips */}
+      {/* Filter Controls & Quick Partner Chips */}
       {expenses.length > 0 && (
         <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4">
-          {/* Quick Partner 1-Click Filter Chips */}
+          {/* Quick Partner Filter Chips */}
           <div className="space-y-2 pb-1 border-b border-zinc-200/60 dark:border-zinc-800">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
@@ -236,51 +247,62 @@ export function ExpensesTab({
                     key={p}
                     type="button"
                     onClick={() => handlePayerChange(p)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 shadow-2xs'
-                        : 'bg-white dark:bg-zinc-850 bg-zinc-50/50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
+                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
+                        : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
                     }`}
                   >
-                    {p === 'All' ? '👥 All Partners' : p}
+                    {p === 'All' ? 'All Partners' : p}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Quick Category Filter Chips */}
+          {/* Quick Spend Area Filter Chips */}
           <div className="space-y-2 pb-1 border-b border-zinc-200/60 dark:border-zinc-800">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-zinc-400" />
-                Filter by Spend Type (Ads, Cards, Fleet, Ops):
+                <Layers className="w-3.5 h-3.5 text-zinc-400" />
+                Filter by Spend Area (Ads, Printing, Fleet, Logistics):
               </span>
-              {filterCategory !== 'All' && (
+              {filterSpendArea !== 'All' && (
                 <button
-                  onClick={() => setFilterCategory('All')}
+                  onClick={() => handleSpendAreaChange('All')}
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
-                  Show All Types
+                  Show All Areas
                 </button>
               )}
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {categories.map(c => {
-                const isSelected = filterCategory.toLowerCase() === c.toLowerCase();
+              <button
+                type="button"
+                onClick={() => handleSpendAreaChange('All')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                  filterSpendArea === 'All'
+                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
+                    : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
+                }`}
+              >
+                All Spend Areas
+              </button>
+              {SPEND_AREAS.map(area => {
+                const isSelected = filterSpendArea.toLowerCase() === area.toLowerCase();
                 return (
                   <button
-                    key={c}
+                    key={area}
                     type="button"
-                    onClick={() => setFilterCategory(c)}
+                    onClick={() => handleSpendAreaChange(area)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
                         : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
                     }`}
                   >
-                    {c === 'All' ? 'All Types' : c}
+                    {area}
                   </button>
                 );
               })}
@@ -288,22 +310,7 @@ export function ExpensesTab({
           </div>
 
           {/* Multi-parameter Dropdown Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Project Filter */}
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PROJECT</label>
-              <CustomSelect
-                value={selectedProjectId || 'All'}
-                onChange={setSelectedProjectId}
-                size="sm"
-                searchable={projects.length > 5}
-                options={[
-                  { value: 'All', label: 'All Projects' },
-                  ...projects.map(p => ({ value: p.id, label: p.title }))
-                ]}
-              />
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Payment Mode */}
             <div>
               <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PAYMENT MODE</label>
@@ -382,11 +389,11 @@ export function ExpensesTab({
             </div>
           )}
 
-          {(selectedProjectId !== 'All' || filterPayer !== 'All' || filterCategory !== 'All' || filterPaymentMode !== 'All' || filterDatePreset !== 'All' || filterCustomDate) && (
+          {(filterSpendArea !== 'All' || filterPayer !== 'All' || filterCategory !== 'All' || filterPaymentMode !== 'All' || filterDatePreset !== 'All' || filterCustomDate) && (
             <div className="pt-1 flex justify-end">
               <button
                 onClick={() => {
-                  setSelectedProjectId('All');
+                  handleSpendAreaChange('All');
                   handlePayerChange('All');
                   setFilterCategory('All');
                   setFilterPaymentMode('All');
@@ -407,13 +414,13 @@ export function ExpensesTab({
         <EmptyState
           type="expenses"
           title="No expenditures logged yet"
-          description="Record each payment with date, who funded the amount, payment proof image, and how it helped the project."
+          description="Record each payment with date, spend area, who funded the amount, receipt proof, and business impact."
           actionText="Log Your First Expense"
           onAction={onOpenExpenseModal}
         />
       ) : (
         <>
-          {/* Mobile Card List (Shows on screens < 768px for optimal phone readability) */}
+          {/* Mobile Card List (< 768px) */}
           <div className="md:hidden space-y-3">
             {sortedExpenses.length === 0 ? (
               <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8">
@@ -421,7 +428,8 @@ export function ExpensesTab({
               </p>
             ) : (
               sortedExpenses.map(exp => {
-                const proj = projMap[exp.projectId];
+                const canonicalPayer = normalizePayerName(exp.payer, partners);
+                const spendArea = exp.spendArea || exp.category || 'General Operations';
 
                 return (
                   <div
@@ -441,26 +449,26 @@ export function ExpensesTab({
                         </div>
                       </div>
 
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/70 dark:border-emerald-800/70">
-                        {exp.payer}
+                      <span className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700">
+                        {canonicalPayer}
                       </span>
                     </div>
 
                     <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
                       <div>
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">{proj ? proj.title : 'General'}</span>
+                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{spendArea}</span>
                         <span className="mx-1">•</span>
                         <span>{exp.paymentMode || 'UPI'}</span>
                       </div>
-                      {exp.category && (
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold">
+                      {exp.category && exp.category !== spendArea && (
+                        <span className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
                           {exp.category}
                         </span>
                       )}
                     </div>
 
                     {exp.howItHelped && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 italic leading-relaxed">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 leading-relaxed">
                         “{exp.howItHelped}”
                       </p>
                     )}
@@ -507,19 +515,19 @@ export function ExpensesTab({
             )}
           </div>
 
-          {/* Desktop High-Density Table View (Hidden on mobile < 768px) */}
+          {/* Desktop High-Density Table View */}
           <div className="hidden md:block glass-panel rounded-2xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Amount & Type</th>
+                    <th className="py-3 px-4">Amount</th>
                     <th className="py-3 px-4">Who Paid</th>
-                    <th className="py-3 px-4">Project</th>
+                    <th className="py-3 px-4">Spend Area / Stream</th>
                     <th className="py-3 px-4">Vendor & Mode</th>
-                    <th className="py-3 px-4">Proof</th>
-                    <th className="py-3 px-4">How It Helped (ROI)</th>
+                    <th className="py-3 px-4">Receipt</th>
+                    <th className="py-3 px-4">Business Impact</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -532,7 +540,8 @@ export function ExpensesTab({
                     </tr>
                   ) : (
                     sortedExpenses.map(exp => {
-                      const proj = projMap[exp.projectId];
+                      const canonicalPayer = normalizePayerName(exp.payer, partners);
+                      const spendArea = exp.spendArea || exp.category || 'General Operations';
 
                       return (
                         <tr key={exp.id} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
@@ -547,25 +556,24 @@ export function ExpensesTab({
                             <div className="text-sm font-black font-mono-num text-zinc-900 dark:text-white">
                               ₹{Number(exp.amount).toLocaleString('en-IN')}
                             </div>
-                            <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-[10px] border border-zinc-200/70 dark:border-zinc-700">
-                              {exp.category || 'General'}
-                            </span>
+                            {exp.category && exp.category !== spendArea && (
+                              <span className="inline-block mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                                {exp.category}
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/60">
-                              <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              <span>{exp.payer}</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700">
+                              <User className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                              <span>{canonicalPayer}</span>
                             </span>
                           </td>
 
                           <td className="py-3.5 px-4 max-w-xs">
                             <div className="font-bold text-zinc-900 dark:text-white truncate">
-                              {proj ? proj.title : 'General Initiative'}
+                              {spendArea}
                             </div>
-                            <span className="text-[10px] font-medium px-2 py-0.2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                              {proj ? proj.department : (exp.department || 'General')}
-                            </span>
                           </td>
 
                           <td className="py-3.5 px-4">
@@ -585,10 +593,10 @@ export function ExpensesTab({
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 shadow-2xs transition-all cursor-pointer"
                               >
                                 <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" />
-                                <span>View Proof</span>
+                                <span>Proof</span>
                               </button>
                             ) : (
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500 italic">No proof</span>
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500">No proof</span>
                             )}
                           </td>
 
@@ -606,7 +614,7 @@ export function ExpensesTab({
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500 italic">No notes</span>
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500">No notes</span>
                             )}
                           </td>
 
@@ -639,3 +647,4 @@ export function ExpensesTab({
     </div>
   );
 }
+

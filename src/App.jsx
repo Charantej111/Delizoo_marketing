@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { OverviewTab } from './components/OverviewTab';
-import { ProjectsTab } from './components/ProjectsTab';
 import { KanbanTab } from './components/KanbanTab';
 import { ExpensesTab } from './components/ExpensesTab';
 import { ReportsTab } from './components/ReportsTab';
 import {
   ExpenseModal,
-  ProjectModal,
   TaskModal,
   ProofModal,
   ImpactModal,
@@ -17,13 +15,12 @@ import { storageService, DEFAULT_PARTNERS } from './services/storage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [partners, setPartners] = useState(DEFAULT_PARTNERS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProjectIdForExpenses, setSelectedProjectIdForExpenses] = useState('All');
+  const [selectedSpendAreaForExpenses, setSelectedSpendAreaForExpenses] = useState('All');
   const [selectedPayerForExpenses, setSelectedPayerForExpenses] = useState('All');
 
   // Dark / Light Theme State
@@ -56,19 +53,16 @@ export default function App() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
 
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [projectToEdit, setProjectToEdit] = useState(null);
-
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
-  const [proofModalData, setProofModalData] = useState(null); // { expense, project }
-  const [impactModalData, setImpactModalData] = useState(null); // { expense, project }
+  const [proofModalData, setProofModalData] = useState(null); // { expense }
+  const [impactModalData, setImpactModalData] = useState(null); // { expense }
 
   // Load from local storage
   useEffect(() => {
     const data = storageService.loadAllData();
-    setProjects(data.projects || []);
     setTasks(data.tasks || []);
     setExpenses(data.expenses || []);
     setPartners(data.partners || DEFAULT_PARTNERS);
@@ -114,31 +108,6 @@ export default function App() {
     }
   }, []);
 
-  const handleSaveProject = useCallback((project) => {
-    setProjects(prev => {
-      const idx = prev.findIndex(p => p.id === project.id);
-      let updated;
-      if (idx >= 0) {
-        updated = [...prev];
-        updated[idx] = project;
-      } else {
-        updated = [...prev, project];
-      }
-      storageService.saveProjects(updated);
-      return updated;
-    });
-  }, []);
-
-  const handleDeleteProject = useCallback((id) => {
-    if (confirm('Delete this project? (Associated tasks and expenses will remain in the database)')) {
-      setProjects(prev => {
-        const updated = prev.filter(p => p.id !== id);
-        storageService.saveProjects(updated);
-        return updated;
-      });
-    }
-  }, []);
-
   const handleSaveTask = useCallback((task) => {
     setTasks(prev => {
       const idx = prev.findIndex(t => t.id === task.id);
@@ -170,9 +139,8 @@ export default function App() {
   }, []);
 
   const handleClearData = useCallback(() => {
-    if (confirm('Are you sure you want to permanently clear all stored projects, tasks, and expenditures on this device?')) {
+    if (confirm('Are you sure you want to permanently clear all stored tasks and expenditures on this device?')) {
       storageService.clearAllData();
-      setProjects([]);
       setTasks([]);
       setExpenses([]);
       setPartners(DEFAULT_PARTNERS);
@@ -180,15 +148,9 @@ export default function App() {
   }, []);
 
   const handleImportComplete = useCallback((imported) => {
-    setProjects(imported.projects || []);
     setTasks(imported.tasks || []);
     setExpenses(imported.expenses || []);
     setPartners(imported.partners || DEFAULT_PARTNERS);
-  }, []);
-
-  const handleSelectProjectForExpenses = useCallback((projectId) => {
-    setSelectedProjectIdForExpenses(projectId);
-    setActiveTab('expenses');
   }, []);
 
   const handleSelectPayerForExpenses = useCallback((payerName) => {
@@ -196,15 +158,18 @@ export default function App() {
     setActiveTab('expenses');
   }, []);
 
+  const handleSelectSpendAreaForExpenses = useCallback((spendArea) => {
+    setSelectedSpendAreaForExpenses(spendArea);
+    setActiveTab('expenses');
+  }, []);
+
   const handleViewProof = useCallback((expense) => {
-    const proj = projects.find(p => p.id === expense.projectId);
-    setProofModalData({ expense, project: proj });
-  }, [projects]);
+    setProofModalData({ expense });
+  }, []);
 
   const handleViewImpact = useCallback((expense) => {
-    const proj = projects.find(p => p.id === expense.projectId);
-    setImpactModalData({ expense, project: proj });
-  }, [projects]);
+    setImpactModalData({ expense });
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -221,12 +186,10 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-        onOpenProjectModal={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }}
         onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         expenseCount={expenses.length}
-        projectCount={projects.length}
         taskCount={tasks.length}
         partnerCount={partners.length}
         theme={theme}
@@ -237,29 +200,32 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-5 sm:pt-6">
         {activeTab === 'overview' && (
           <OverviewTab
-            projects={projects}
             tasks={tasks}
             expenses={expenses}
             partners={partners}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-            onOpenProjectModal={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }}
             onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
             onSelectPayerForExpenses={handleSelectPayerForExpenses}
+            onSelectSpendAreaForExpenses={handleSelectSpendAreaForExpenses}
             onViewProof={handleViewProof}
             onViewImpact={handleViewImpact}
             setActiveTab={setActiveTab}
           />
         )}
 
-        {activeTab === 'projects' && (
-          <ProjectsTab
-            projects={projects}
-            tasks={tasks}
+        {activeTab === 'expenses' && (
+          <ExpensesTab
             expenses={expenses}
-            onOpenProjectModal={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }}
-            onEditProject={(p) => { setProjectToEdit(p); setIsProjectModalOpen(true); }}
-            onDeleteProject={handleDeleteProject}
-            onSelectProjectForExpenses={handleSelectProjectForExpenses}
+            partners={partners}
+            onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
+            onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
+            onDeleteExpense={handleDeleteExpense}
+            onViewProof={handleViewProof}
+            onViewImpact={handleViewImpact}
+            selectedSpendArea={selectedSpendAreaForExpenses}
+            setSelectedSpendArea={setSelectedSpendAreaForExpenses}
+            selectedPayer={selectedPayerForExpenses}
+            setSelectedPayer={setSelectedPayerForExpenses}
             searchQuery={searchQuery}
           />
         )}
@@ -267,35 +233,16 @@ export default function App() {
         {activeTab === 'kanban' && (
           <KanbanTab
             tasks={tasks}
-            projects={projects}
             onSaveTask={handleSaveTask}
+            onEditTask={(t) => { setTaskToEdit(t); setIsTaskModalOpen(true); }}
             onDeleteTask={handleDeleteTask}
-            onOpenTaskModal={() => setIsTaskModalOpen(true)}
-            searchQuery={searchQuery}
-          />
-        )}
-
-        {activeTab === 'expenses' && (
-          <ExpensesTab
-            expenses={expenses}
-            projects={projects}
-            partners={partners}
-            onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-            onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
-            onDeleteExpense={handleDeleteExpense}
-            onViewProof={handleViewProof}
-            onViewImpact={handleViewImpact}
-            selectedProjectId={selectedProjectIdForExpenses}
-            setSelectedProjectId={setSelectedProjectIdForExpenses}
-            selectedPayer={selectedPayerForExpenses}
-            setSelectedPayer={setSelectedPayerForExpenses}
+            onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
             searchQuery={searchQuery}
           />
         )}
 
         {activeTab === 'reports' && (
           <ReportsTab
-            projects={projects}
             tasks={tasks}
             expenses={expenses}
             partners={partners}
@@ -306,13 +253,13 @@ export default function App() {
         )}
       </main>
 
-      {/* Glassmorphism Footer */}
+      {/* Footer */}
       <footer className="glass-header py-4 mt-auto no-print border-t border-zinc-200/60 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-zinc-500 dark:text-zinc-400">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-            <span className="font-extrabold text-zinc-900 dark:text-white">DELIZOO EATS</span>
+            <span className="font-extrabold text-zinc-900 dark:text-white">DELIZOO</span>
             <span>•</span>
-            <span>Food Delivery Operations (Kakinada)</span>
+            <span>Kakinada Launch Operations</span>
             <span>•</span>
             <a
               href="https://delizoo.in"
@@ -324,8 +271,8 @@ export default function App() {
             </a>
           </div>
           <div className="flex items-center gap-2 font-mono-num text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Local Device Storage (100% Private)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Private Local Storage</span>
           </div>
         </div>
       </footer>
@@ -336,24 +283,16 @@ export default function App() {
         onClose={() => setIsExpenseModalOpen(false)}
         onSave={handleSaveExpense}
         expenseToEdit={expenseToEdit}
-        projects={projects}
         partners={partners}
         expenses={expenses}
         onOpenPartnerModal={() => { setIsExpenseModalOpen(false); setIsPartnerModalOpen(true); }}
-      />
-
-      <ProjectModal
-        isOpen={isProjectModalOpen}
-        onClose={() => setIsProjectModalOpen(false)}
-        onSave={handleSaveProject}
-        projectToEdit={projectToEdit}
       />
 
       <TaskModal
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
         onSave={handleSaveTask}
-        projects={projects}
+        taskToEdit={taskToEdit}
       />
 
       <PartnerModal
@@ -367,14 +306,12 @@ export default function App() {
         isOpen={!!proofModalData}
         onClose={() => setProofModalData(null)}
         expense={proofModalData?.expense}
-        project={proofModalData?.project}
       />
 
       <ImpactModal
         isOpen={!!impactModalData}
         onClose={() => setImpactModalData(null)}
         expense={impactModalData?.expense}
-        project={impactModalData?.project}
       />
     </div>
   );

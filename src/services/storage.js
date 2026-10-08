@@ -10,16 +10,18 @@ export const DEFAULT_PARTNERS = [
   { id: 'partner-6', name: 'Reserve Partner', role: 'Partner / Angel Pool', investment: 50000, color: '#6366f1' }
 ];
 
-export const POPULAR_CATEGORIES = [
-  { label: 'Ads & Promotion', icon: '📣', desc: 'Meta, Google, Insta & influencer ads' },
-  { label: 'Visiting Cards & Printing', icon: '📇', desc: 'Flyers, menu cards, standees & banners' },
-  { label: 'Rider Fleet & Kits', icon: '🛵', desc: 'Delivery bags, shirts & rider ops' },
-  { label: 'Packaging & Restaurant Ops', icon: '📦', desc: 'Boxes, cutlery, tapes & restaurant kits' },
-  { label: 'Tech & Domain', icon: '💻', desc: 'Hosting, domain, SMS gateway & software' },
-  { label: 'Fuel & Travel', icon: '⛽', desc: 'On-ground commute & local logistics' },
-  { label: 'Food Sampling', icon: '🍕', desc: 'College campaign & food testing' },
-  { label: 'Office & Supplies', icon: '🏢', desc: 'General office & misc utility' }
+export const SPEND_AREAS = [
+  'Digital Ads & Marketing',
+  'Visiting Cards & Printing',
+  'Rider Fleet & Delivery Kits',
+  'Packaging & Restaurant Ops',
+  'Tech & Infrastructure',
+  'Fuel & Logistics',
+  'Food Sampling & Promotions',
+  'Office & Operations'
 ];
+
+export const POPULAR_CATEGORIES = SPEND_AREAS.map(area => ({ label: area }));
 
 const STORAGE_KEYS = {
   PROJECTS: 'delizoo_user_projects',
@@ -28,15 +30,171 @@ const STORAGE_KEYS = {
   PARTNERS: 'delizoo_user_partners'
 };
 
+/**
+ * Normalizes any short / alias names (e.g. "Charan", "Sunil", "Pavan")
+ * to the exact canonical partner name ("N Charan Tej", "G Sunil", etc.)
+ */
+export function normalizePayerName(rawName, partners = DEFAULT_PARTNERS) {
+  if (!rawName || typeof rawName !== 'string') return '';
+  const trimmed = rawName.trim();
+  const lower = trimmed.toLowerCase();
+
+  // 1. Direct Alias Table
+  if (
+    lower === 'charan' ||
+    lower === 'charantej' ||
+    lower === 'charan tej' ||
+    lower === 'n charan tej' ||
+    lower === 'n charan' ||
+    lower === 'n. charan tej' ||
+    lower === 'n. charan'
+  ) {
+    return 'N Charan Tej';
+  }
+
+  if (
+    lower === 'pavan' ||
+    lower === 'g pavan' ||
+    lower === 'g. pavan' ||
+    lower === 'pavan kumar' ||
+    lower === 'pavankumar'
+  ) {
+    return 'G Pavan';
+  }
+
+  if (
+    lower === 'sunil' ||
+    lower === 'g sunil' ||
+    lower === 'g. sunil' ||
+    lower === 'sunil kumar' ||
+    lower === 'sunilkumar'
+  ) {
+    return 'G Sunil';
+  }
+
+  if (
+    lower === 'nareen' ||
+    lower === 'm nareen' ||
+    lower === 'm. nareen' ||
+    lower === 'naveen' ||
+    lower === 'm naveen' ||
+    lower === 'm. naveen'
+  ) {
+    return 'M Nareen';
+  }
+
+  if (
+    lower === 'sandeep' ||
+    lower === 'j sandeep' ||
+    lower === 'j. sandeep' ||
+    lower === 'sandeep kumar'
+  ) {
+    return 'J Sandeep';
+  }
+
+  if (
+    lower === 'reserve' ||
+    lower === 'reserve partner' ||
+    lower === 'angel pool' ||
+    lower === 'founders pool' ||
+    lower === 'partner 6' ||
+    lower === 'partner-6'
+  ) {
+    return 'Reserve Partner';
+  }
+
+  // 2. Search against current partner list
+  for (const p of partners) {
+    const pLower = p.name.toLowerCase();
+    if (pLower === lower) return p.name;
+    
+    // Check if raw name is a significant word in partner's full name
+    const words = pLower.split(/\s+/).filter(w => w.length > 2);
+    if (words.includes(lower)) {
+      return p.name;
+    }
+  }
+
+  return trimmed;
+}
+
 export const storageService = {
-  // Load all user records from local storage
+  // Load all user records from local storage with automatic deduplication & normalization
   loadAllData() {
     try {
       const projects = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROJECTS) || '[]');
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-      const expenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
-      const savedPartners = localStorage.getItem(STORAGE_KEYS.PARTNERS);
-      const partners = savedPartners ? JSON.parse(savedPartners) : DEFAULT_PARTNERS;
+      let rawExpenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
+      
+      // Load and clean partners list (preserve user's custom capital allocations)
+      let rawPartners = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARTNERS) || 'null');
+      let partners = DEFAULT_PARTNERS;
+
+      if (rawPartners && Array.isArray(rawPartners) && rawPartners.length > 0) {
+        // Deduplicate any old legacy aliases like standalone "Sunil" or "Charan" in partners
+        const seenNames = new Set();
+        const cleaned = [];
+
+        rawPartners.forEach(p => {
+          if (!p || !p.name) return;
+          const canonicalName = normalizePayerName(p.name, DEFAULT_PARTNERS);
+          if (!seenNames.has(canonicalName)) {
+            seenNames.add(canonicalName);
+            const defaultMatch = DEFAULT_PARTNERS.find(dp => dp.name === canonicalName);
+            
+            // Accurately parse the investment number (preserve exact amount saved by user)
+            let parsedInvestment = 50000;
+            if (p.investment !== undefined && p.investment !== null && p.investment !== '') {
+              const n = Number(p.investment);
+              if (!isNaN(n)) {
+                parsedInvestment = n;
+              }
+            } else if (defaultMatch) {
+              parsedInvestment = defaultMatch.investment;
+            }
+
+            cleaned.push({
+              id: p.id || defaultMatch?.id || `partner-${cleaned.length + 1}`,
+              name: canonicalName,
+              role: p.role || defaultMatch?.role || 'Partner',
+              investment: parsedInvestment,
+              color: p.color || defaultMatch?.color || '#10b981'
+            });
+          }
+        });
+
+        // Ensure all 6 default partners exist in the list
+        DEFAULT_PARTNERS.forEach(dp => {
+          if (!seenNames.has(dp.name)) {
+            cleaned.push(dp);
+            seenNames.add(dp.name);
+          }
+        });
+
+        partners = cleaned;
+        this.savePartners(partners);
+      } else {
+        partners = DEFAULT_PARTNERS;
+        this.savePartners(partners);
+      }
+
+      // Automatically normalize and update any legacy expense payers in place
+      let expensesModified = false;
+      const expenses = rawExpenses.map(e => {
+        if (e.payer) {
+          const normalized = normalizePayerName(e.payer, partners);
+          if (normalized !== e.payer) {
+            expensesModified = true;
+            return { ...e, payer: normalized };
+          }
+        }
+        return e;
+      });
+
+      if (expensesModified) {
+        this.saveExpenses(expenses);
+      }
+
       return { projects, tasks, expenses, partners };
     } catch (e) {
       console.error('Failed to parse local device storage data:', e);
@@ -109,10 +267,28 @@ export const storageService = {
           if (!parsed.data || !Array.isArray(parsed.data.projects) || !Array.isArray(parsed.data.expenses)) {
             throw new Error("Invalid backup file format. Missing data arrays.");
           }
-          const projects = parsed.data.projects || [];
-          const tasks = parsed.data.tasks || [];
-          const expenses = parsed.data.expenses || [];
-          const partners = parsed.data.partners || DEFAULT_PARTNERS;
+          const rawPartners = parsed.data.partners || DEFAULT_PARTNERS;
+
+          // Parse and normalize partners on import
+          const partners = rawPartners.map(p => {
+            const canonical = normalizePayerName(p.name, DEFAULT_PARTNERS);
+            const defaultMatch = DEFAULT_PARTNERS.find(dp => dp.name === canonical);
+            const inv = p.investment !== undefined && p.investment !== null && p.investment !== '' ? Number(p.investment) : (defaultMatch?.investment ?? 50000);
+            return {
+              id: p.id || defaultMatch?.id || `partner-${Date.now()}`,
+              name: canonical || p.name,
+              role: p.role || defaultMatch?.role || 'Partner',
+              investment: isNaN(inv) ? 50000 : inv,
+              color: p.color || defaultMatch?.color || '#10b981'
+            };
+          });
+
+          // Normalize expenses on import
+          const expenses = rawExpenses.map(exp => ({
+            ...exp,
+            amount: Number(exp.amount) || 0,
+            payer: normalizePayerName(exp.payer, partners)
+          }));
 
           this.saveProjects(projects);
           this.saveTasks(tasks);
@@ -130,24 +306,19 @@ export const storageService = {
   },
 
   // Export Expenses to CSV for Excel & accounting
-  exportCsv(expenses, projects) {
-    const projMap = {};
-    projects.forEach(p => { projMap[p.id] = p; });
-
+  exportCsv(expenses) {
     const headers = [
       "Expense ID",
       "Date",
       "Time",
-      "Project Title",
-      "Department",
       "Amount (INR)",
-      "Who Gave Amount",
+      "Who Paid",
+      "Spend Area",
       "Vendor / Payee",
-      "Category",
       "Payment Mode",
       "UTR / Reference No",
-      "Proof Attached",
-      "How It Helped (Impact & ROI)"
+      "Receipt Attached",
+      "Impact & Notes"
     ];
 
     const escape = (val) => {
@@ -156,18 +327,15 @@ export const storageService = {
     };
 
     const rows = expenses.map(e => {
-      const proj = projMap[e.projectId] || {};
       return [
         escape(e.id),
         escape(e.date),
         escape(e.time || ''),
-        escape(proj.title || 'Unassigned / General'),
-        escape(proj.department || e.department || 'General'),
         e.amount,
-        escape(e.payer),
+        escape(normalizePayerName(e.payer)),
+        escape(e.category || 'General'),
         escape(e.vendor || ''),
-        escape(e.category || ''),
-        escape(e.paymentMode || ''),
+        escape(e.paymentMode || 'UPI'),
         escape(e.utrNumber || ''),
         e.proofDataUrl ? 'YES' : 'NO',
         escape(e.howItHelped || '')
@@ -180,7 +348,7 @@ export const storageService = {
     const a = document.createElement('a');
     const dateStr = new Date().toISOString().split('T')[0];
     a.href = url;
-    a.download = `delizoo_expenses_${dateStr}.csv`;
+    a.download = `delizoo_kakinada_ledger_${dateStr}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

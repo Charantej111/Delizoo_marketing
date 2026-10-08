@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import {
   LayoutDashboard,
-  FolderKanban,
-  Kanban,
+  CheckSquare,
   Receipt,
   FileSpreadsheet,
   Plus,
-  IndianRupee,
   Search,
-  HardDrive,
   Users,
-  X,
   Sun,
   Moon
 } from 'lucide-react';
@@ -19,12 +15,10 @@ export function Navbar({
   activeTab,
   setActiveTab,
   onOpenExpenseModal,
-  onOpenProjectModal,
   onOpenPartnerModal,
   searchQuery,
   setSearchQuery,
   expenseCount,
-  projectCount,
   taskCount,
   partnerCount = 6,
   theme = 'light',
@@ -34,68 +28,62 @@ export function Navbar({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'projects', label: 'Projects', icon: FolderKanban, count: projectCount },
-    { id: 'kanban', label: 'Tasks', icon: Kanban, count: taskCount },
     { id: 'expenses', label: 'Expense Ledger', icon: Receipt, count: expenseCount },
-    { id: 'reports', label: 'Reports & DB', icon: FileSpreadsheet }
+    { id: 'kanban', label: 'Milestones & Tasks', icon: CheckSquare, count: taskCount },
+    { id: 'reports', label: 'Reports & Audit', icon: FileSpreadsheet }
   ];
 
   return (
     <header className="glass-header sticky top-0 z-30 no-print transition-all">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-3 sm:gap-4">
           
           {/* Brand Logo & Title */}
           <div
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer shrink-0"
+            className="flex items-center gap-2.5 cursor-pointer shrink-0"
             onClick={() => setActiveTab('overview')}
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-extrabold flex items-center justify-center text-sm sm:text-base shadow-sm border border-zinc-800 dark:border-emerald-400">
+            <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-black flex items-center justify-center text-sm shadow-sm">
               D
             </div>
             <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-white font-sans">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-black tracking-tight text-zinc-900 dark:text-white">
                   DELIZOO
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 hidden xs:inline-block">
-                  KKD
+                <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                  Kakinada
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] font-medium text-zinc-500 dark:text-zinc-400 -mt-0.5 hidden sm:block">
-                Operations & Expense Ledger
-              </p>
             </div>
           </div>
 
-          {/* Desktop Search Bar */}
+          {/* Search Bar */}
           <div className="flex-1 max-w-sm hidden md:block">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
-                <Search className="w-4 h-4" />
-              </div>
+              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search projects, vendors, UTR, or payers..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs glass-input rounded-xl focus:bg-white dark:focus:bg-zinc-900 text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
+                placeholder="Search vendor, payer, UTR, or notes..."
+                className="w-full pl-8.5 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
               />
             </div>
           </div>
 
           {/* Action Buttons & Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2">
             {/* Mobile Search Toggle */}
             <button
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 transition-all"
+              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
               title="Search"
             >
               <Search className="w-4 h-4" />
             </button>
 
-            {/* Dark / Light Theme Toggle Button */}
+            {/* Dark / Light Theme Toggle */}
             {toggleTheme && (
               <button
                 type="button"
@@ -116,55 +104,44 @@ export function Navbar({
             {onOpenPartnerModal && (
               <button
                 onClick={onOpenPartnerModal}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
-                title="Manage 6 Founders Capital Pool"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer shadow-2xs"
+                title="Manage Founders Capital Pool"
               >
                 <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>6 Founders ({partnerCount})</span>
+                <span>Founders ({partnerCount})</span>
               </button>
             )}
-
-            {/* New Project Button */}
-            <button
-              onClick={onOpenProjectModal}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Project</span>
-            </button>
 
             {/* Log Expense Button */}
             <button
               onClick={onOpenExpenseModal}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
             >
-              <IndianRupee className="w-3.5 h-3.5" />
-              <span>Log Expense</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Record Expense</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Search Expandable Bar */}
+        {/* Mobile Search Input */}
         {isMobileSearchOpen && (
           <div className="md:hidden pb-3 pt-1">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
-                <Search className="w-4 h-4" />
-              </div>
+              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search projects, vendors, UTR..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
+                placeholder="Search vendor, payer, UTR..."
+                className="w-full pl-8.5 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
               />
             </div>
           </div>
         )}
 
-        {/* Nav Tabs */}
-        <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 scrollbar-none border-t border-zinc-200/60 dark:border-zinc-800/80">
+        {/* Navigation Tabs */}
+        <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-1.5 scrollbar-none border-t border-zinc-200/60 dark:border-zinc-800/80">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -172,9 +149,9 @@ export function Navbar({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-sm'
+                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-bold shadow-2xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-zinc-800/70'
                 }`}
               >
@@ -182,7 +159,7 @@ export function Navbar({
                 <span>{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
                   <span
-                    className={`text-[10px] font-mono-num font-extrabold px-1.5 py-0.2 rounded-full ${
+                    className={`text-[10px] font-mono-num font-bold px-1.5 py-0.2 rounded-full ${
                       isActive
                         ? 'bg-white/20 dark:bg-zinc-900/30 text-white dark:text-zinc-950'
                         : 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'

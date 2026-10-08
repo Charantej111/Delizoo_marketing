@@ -9,25 +9,20 @@ import {
   Eye,
   Trash2,
   FileText,
-  UserCheck,
+  User,
   Users,
-  Plus,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle
+  Plus
 } from 'lucide-react';
-import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS } from '../services/storage';
+import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS, SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
-// 1. Expense Modal (Add / Edit) with Partner & Category Integration
+// 1. Expense Modal (Add / Edit) with Spend Area & Partner Integration
 export function ExpenseModal({
   isOpen,
   onClose,
   onSave,
   expenseToEdit,
-  projects,
   partners = DEFAULT_PARTNERS,
   expenses = [],
   onOpenPartnerModal
@@ -35,13 +30,13 @@ export function ExpenseModal({
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
-    projectId: projects[0]?.id || '',
+    spendArea: SPEND_AREAS[0],
     amount: '',
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     payer: partners[0]?.name || 'N Charan Tej',
     vendor: '',
-    category: 'Ads & Promotion',
+    category: 'Digital Ads & Growth',
     paymentMode: 'UPI',
     utrNumber: '',
     howItHelped: '',
@@ -60,14 +55,13 @@ export function ExpenseModal({
       map[p.name] = {
         investment: Number(p.investment) || 0,
         spent: 0,
-        color: p.color || '#10b981',
         role: p.role || 'Partner'
       };
     });
 
     expenses.forEach(e => {
       if (expenseToEdit && e.id === expenseToEdit.id) return; // ignore current when editing
-      const payer = e.payer?.trim();
+      const payer = normalizePayerName(e.payer, partners);
       if (map[payer]) {
         map[payer].spent += Number(e.amount) || 0;
       }
@@ -76,30 +70,35 @@ export function ExpenseModal({
     return map;
   }, [partners, expenses, expenseToEdit]);
 
+  // Synchronize and reset form data whenever modal opens or expenseToEdit changes
   useEffect(() => {
-    if (expenseToEdit) {
-      setFormData({
-        ...expenseToEdit,
-        amount: expenseToEdit.amount || ''
-      });
-    } else {
-      setFormData({
-        projectId: projects[0]?.id || '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toTimeString().slice(0, 5),
-        payer: partners[0]?.name || 'N Charan Tej',
-        vendor: '',
-        category: 'Ads & Promotion',
-        paymentMode: 'UPI',
-        utrNumber: '',
-        howItHelped: '',
-        proofDataUrl: '',
-        proofName: '',
-        proofType: ''
-      });
+    if (isOpen) {
+      if (expenseToEdit) {
+        setFormData({
+          ...expenseToEdit,
+          spendArea: expenseToEdit.spendArea || expenseToEdit.category || SPEND_AREAS[0],
+          amount: expenseToEdit.amount !== undefined && expenseToEdit.amount !== null ? expenseToEdit.amount : '',
+          payer: normalizePayerName(expenseToEdit.payer, partners) || partners[0]?.name || 'N Charan Tej'
+        });
+      } else {
+        setFormData({
+          spendArea: SPEND_AREAS[0],
+          amount: '',
+          date: new Date().toISOString().split('T')[0],
+          time: new Date().toTimeString().slice(0, 5),
+          payer: partners[0]?.name || 'N Charan Tej',
+          vendor: '',
+          category: 'Digital Ads & Growth',
+          paymentMode: 'UPI',
+          utrNumber: '',
+          howItHelped: '',
+          proofDataUrl: '',
+          proofName: '',
+          proofType: ''
+        });
+      }
     }
-  }, [expenseToEdit, projects, partners]);
+  }, [isOpen, expenseToEdit, partners]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -136,6 +135,7 @@ export function ExpenseModal({
       id: expenseToEdit ? expenseToEdit.id : 'exp-' + Date.now(),
       amount: Number(formData.amount),
       payer: formData.payer.trim(),
+      spendArea: formData.spendArea || formData.category || SPEND_AREAS[0],
       createdAt: expenseToEdit ? expenseToEdit.createdAt : new Date().toISOString()
     };
 
@@ -155,14 +155,11 @@ export function ExpenseModal({
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
           <div>
-            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-              <span>{expenseToEdit ? 'Edit Expenditure' : 'Record Project Expenditure'}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800">
-                Live Audit
-              </span>
+            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight">
+              {expenseToEdit ? 'Edit Expenditure' : 'Record Venture Expenditure'}
             </h3>
             <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400">
-              Track amount, investor capital deduction, payment proof, and ROI impact.
+              Log spend for Delizoo Kakinada, deduct from partner pool, and attach receipt proof.
             </p>
           </div>
           <button
@@ -175,7 +172,7 @@ export function ExpenseModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4.5 text-xs">
-          {/* Amount and Linked Project */}
+          {/* Amount and Spend Area */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">AMOUNT SPENT (INR ₹) *</label>
@@ -195,27 +192,13 @@ export function ExpenseModal({
             </div>
 
             <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">LINKED PROJECT</label>
-              {projects.length > 0 ? (
-                <CustomSelect
-                  value={formData.projectId}
-                  onChange={(val) => setFormData({ ...formData, projectId: val })}
-                  options={[
-                    { value: '', label: 'General Operations / Unassigned' },
-                    ...projects.map(p => ({
-                      value: p.id,
-                      label: p.title,
-                      sublabel: p.department || 'General'
-                    }))
-                  ]}
-                  placeholder="Select project..."
-                  searchable={projects.length > 5}
-                />
-              ) : (
-                <div className="text-xs text-zinc-400 dark:text-zinc-500 py-2 px-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
-                  No projects created yet (will be logged as General Ops).
-                </div>
-              )}
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">SPEND AREA / STREAM *</label>
+              <CustomSelect
+                value={formData.spendArea}
+                onChange={(val) => setFormData({ ...formData, spendArea: val, category: val })}
+                options={SPEND_AREAS.map(area => ({ value: area, label: area }))}
+                placeholder="Select operational spend area..."
+              />
             </div>
           </div>
 
@@ -223,7 +206,7 @@ export function ExpenseModal({
           <div className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800 space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="block font-bold text-zinc-800 dark:text-zinc-200">
-                WHO PAID / FUNDED THIS (CAPITAL SOURCE) *
+                WHO PAID / FUNDED THIS (PARTNER CAPITAL) *
               </label>
               {onOpenPartnerModal && (
                 <button
@@ -232,12 +215,12 @@ export function ExpenseModal({
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Users className="w-3 h-3" />
-                  <span>Manage Investors & Capital</span>
+                  <span>Manage 6 Partners & Capital</span>
                 </button>
               )}
             </div>
 
-            {/* Quick 1-click Partner Selection Pills */}
+            {/* Quick Partner Selection Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {partners.map(p => {
                 const stat = partnerSpendStats[p.name] || { investment: p.investment, spent: 0 };
@@ -251,7 +234,7 @@ export function ExpenseModal({
                     onClick={() => setFormData({ ...formData, payer: p.name })}
                     className={`p-2 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
                       isSelected
-                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 shadow-sm scale-[1.02]'
+                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 shadow-sm'
                         : 'bg-white dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
                     }`}
                   >
@@ -277,14 +260,14 @@ export function ExpenseModal({
               })}
             </div>
 
-            {/* Manual input / override */}
+            {/* Manual input / override if needed */}
             <div className="pt-1">
               <input
                 type="text"
                 required
                 value={formData.payer}
                 onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
-                placeholder="Or type custom payer name (e.g. Founders Pool, Petty Cash)"
+                placeholder="Or custom payer name (e.g. Petty Cash)"
                 className="w-full px-3 py-1.5 text-xs glass-input rounded-xl font-medium text-zinc-900 dark:text-white outline-none"
               />
             </div>
@@ -306,11 +289,10 @@ export function ExpenseModal({
             )}
           </div>
 
-          {/* Spend Category with 1-Click Suggestions */}
+          {/* Quick Category Chips */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200">SPEND CATEGORY / TYPE *</label>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Pick quick tag or type custom</span>
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">SPECIFIC ITEM DESCRIPTION / CATEGORY *</label>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -344,7 +326,7 @@ export function ExpenseModal({
           {/* Date and Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">WHEN (DATE) *</label>
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">DATE *</label>
               <CustomDatePicker
                 value={formData.date}
                 onChange={(dateStr) => setFormData({ ...formData, date: dateStr })}
@@ -404,10 +386,9 @@ export function ExpenseModal({
 
           {/* How It Helped (Impact & ROI) */}
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="font-bold text-zinc-800 dark:text-zinc-200">HOW IT HELPED THE PROJECT (IMPACT & ROI) *</label>
-              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">Accountability</span>
-            </div>
+            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+              HOW IT HELPED THE VENTURE (BUSINESS IMPACT & ROI) *
+            </label>
             <textarea
               rows={2}
               required
@@ -421,8 +402,8 @@ export function ExpenseModal({
           {/* Proof of Payment Upload */}
           <div className="border border-zinc-200/70 dark:border-zinc-800 rounded-2xl p-3.5 bg-zinc-50/60 dark:bg-zinc-900/50 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="font-bold text-zinc-800 dark:text-zinc-200">PROOF OF PAYMENT (RECEIPT / SCREENSHOT)</label>
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Stored on your device</span>
+              <label className="font-bold text-zinc-800 dark:text-zinc-200">RECEIPT / PAYMENT SCREENSHOT</label>
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Stored privately on your device</span>
             </div>
 
             {formData.proofDataUrl ? (
@@ -438,7 +419,7 @@ export function ExpenseModal({
                       {formData.proofName || 'Attached Document'}
                     </p>
                     <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                      ✓ Attached successfully
+                      Attached successfully
                     </p>
                   </div>
                 </div>
@@ -494,194 +475,45 @@ export function ExpenseModal({
   );
 }
 
-// 2. Project Modal (Add / Edit)
-export function ProjectModal({ isOpen, onClose, onSave, projectToEdit }) {
+// 2. Task Modal (Add / Edit) with Spend Area integration
+export function TaskModal({ isOpen, onClose, onSave, taskToEdit }) {
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
     title: '',
-    department: 'Marketing',
-    budget: '',
-    lead: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    description: '',
-    status: 'In Progress',
-    progress: 0
-  });
-
-  useEffect(() => {
-    if (projectToEdit) {
-      setFormData({
-        ...projectToEdit,
-        budget: projectToEdit.budget || '',
-        progress: projectToEdit.progress || 0
-      });
-    } else {
-      setFormData({
-        title: '',
-        department: 'Marketing',
-        budget: '',
-        lead: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        description: '',
-        status: 'In Progress',
-        progress: 0
-      });
-    }
-  }, [projectToEdit]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) return alert('Please enter project title');
-    const payload = {
-      ...formData,
-      id: projectToEdit ? projectToEdit.id : 'proj-' + Date.now(),
-      budget: Number(formData.budget) || 0,
-      progress: Number(formData.progress) || 0
-    };
-    onSave(payload);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/60 dark:bg-zinc-950/80 backdrop-blur-xs">
-      <div className="glass-modal rounded-3xl max-w-lg w-full max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
-        <div className="p-4 sm:p-5 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight">
-              {projectToEdit ? 'Edit Project' : 'Create New Project'}
-            </h3>
-            <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400">Define department, budget allocation, and targets.</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
-          <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">PROJECT TITLE *</label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. Kakinada College Campus Marketing Campaign"
-              className="w-full px-3 py-2 glass-input rounded-xl font-bold text-zinc-900 dark:text-white outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">DEPARTMENT</label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="e.g. Marketing, Rider Fleet, Restaurant Ops"
-                className="w-full px-3 py-2 glass-input rounded-xl font-medium text-zinc-800 dark:text-zinc-100 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">ALLOCATED BUDGET (INR ₹)</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                placeholder="e.g. 50000"
-                className="w-full px-3 py-2 glass-input rounded-xl font-mono-num font-bold text-zinc-900 dark:text-white outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">PROJECT LEAD / OWNER</label>
-              <input
-                type="text"
-                value={formData.lead}
-                onChange={(e) => setFormData({ ...formData, lead: e.target.value })}
-                placeholder="e.g. Charan"
-                className="w-full px-3 py-2 glass-input rounded-xl font-medium text-zinc-800 dark:text-zinc-100 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">STATUS</label>
-              <CustomSelect
-                value={formData.status}
-                onChange={(val) => setFormData({ ...formData, status: val })}
-                options={['Planning', 'In Progress', 'Completed', 'On Hold']}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">START DATE</label>
-              <CustomDatePicker
-                value={formData.startDate}
-                onChange={(dateStr) => setFormData({ ...formData, startDate: dateStr })}
-                placeholder="Pick start date"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">TARGET DEADLINE</label>
-              <CustomDatePicker
-                value={formData.endDate}
-                onChange={(dateStr) => setFormData({ ...formData, endDate: dateStr })}
-                placeholder="Pick deadline"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">DESCRIPTION & OBJECTIVES</label>
-            <textarea
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Key campaign goals, targets, and expected outputs..."
-              className="w-full px-3 py-2 glass-input rounded-xl text-xs leading-relaxed text-zinc-800 dark:text-zinc-100 outline-none"
-            />
-          </div>
-
-          <div className="pt-3 border-t border-zinc-200/60 dark:border-zinc-800 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold text-xs transition-all shadow-2xs"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold text-xs shadow-sm transition-all"
-            >
-              {projectToEdit ? 'Save Changes' : 'Create Project'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// 3. Task Modal (Add / Edit)
-export function TaskModal({ isOpen, onClose, onSave, projects }) {
-  if (!isOpen) return null;
-
-  const [formData, setFormData] = useState({
-    title: '',
-    projectId: projects[0]?.id || '',
+    spendArea: SPEND_AREAS[0],
     priority: 'High',
     assignee: '',
     dueDate: '',
     status: 'To Do',
     checklistText: ''
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (taskToEdit) {
+        setFormData({
+          title: taskToEdit.title || '',
+          spendArea: taskToEdit.spendArea || SPEND_AREAS[0],
+          priority: taskToEdit.priority || 'High',
+          assignee: taskToEdit.assignee || '',
+          dueDate: taskToEdit.dueDate || '',
+          status: taskToEdit.status || 'To Do',
+          checklistText: Array.isArray(taskToEdit.checklist) ? taskToEdit.checklist.join('\n') : ''
+        });
+      } else {
+        setFormData({
+          title: '',
+          spendArea: SPEND_AREAS[0],
+          priority: 'High',
+          assignee: '',
+          dueDate: '',
+          status: 'To Do',
+          checklistText: ''
+        });
+      }
+    }
+  }, [isOpen, taskToEdit]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -692,16 +524,17 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
       : [];
 
     const payload = {
-      id: 'task-' + Date.now(),
+      ...formData,
+      id: taskToEdit ? taskToEdit.id : 'task-' + Date.now(),
       title: formData.title.trim(),
-      projectId: formData.projectId,
-      priority: formData.priority,
-      assignee: formData.assignee.trim(),
-      dueDate: formData.dueDate,
-      status: formData.status,
+      spendArea: formData.spendArea || SPEND_AREAS[0],
+      priority: formData.priority || 'High',
+      assignee: (formData.assignee || '').trim(),
+      dueDate: formData.dueDate || '',
+      status: formData.status || 'To Do',
       completed: formData.status === 'Completed',
       checklist,
-      completedItems: []
+      completedItems: taskToEdit ? (taskToEdit.completedItems || []) : []
     };
 
     onSave(payload);
@@ -712,8 +545,10 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/60 dark:bg-zinc-950/80 backdrop-blur-xs">
       <div className="glass-modal rounded-3xl max-w-md w-full shadow-2xl p-5 space-y-4 text-xs">
         <div className="flex justify-between items-center border-b border-zinc-200/60 dark:border-zinc-800 pb-3">
-          <h3 className="text-base font-black text-zinc-900 dark:text-white">Add Kanban Task</h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+          <h3 className="text-base font-black text-zinc-900 dark:text-white">
+            {taskToEdit ? 'Edit Task' : 'Add Milestone Task'}
+          </h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -732,15 +567,12 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
           </div>
 
           <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">LINKED PROJECT</label>
+            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">OPERATIONAL STREAM / SPEND AREA</label>
             <CustomSelect
-              value={formData.projectId}
-              onChange={(val) => setFormData({ ...formData, projectId: val })}
-              options={[
-                { value: '', label: 'General / No Project' },
-                ...projects.map(p => ({ value: p.id, label: p.title }))
-              ]}
-              placeholder="Select project..."
+              value={formData.spendArea}
+              onChange={(val) => setFormData({ ...formData, spendArea: val })}
+              options={SPEND_AREAS.map(a => ({ value: a, label: a }))}
+              placeholder="Select operational stream..."
             />
           </div>
 
@@ -789,15 +621,15 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all"
+              className="px-4 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold shadow-sm transition-all"
+              className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold shadow-sm transition-all cursor-pointer"
             >
-              Add Task
+              {taskToEdit ? 'Save Changes' : 'Add Task'}
             </button>
           </div>
         </form>
@@ -806,11 +638,17 @@ export function TaskModal({ isOpen, onClose, onSave, projects }) {
   );
 }
 
-// 4. Proof Modal (Inspect Uploaded Receipt)
-export function ProofModal({ isOpen, onClose, expense, project }) {
+// 3. Proof Modal (Inspect Uploaded Receipt)
+export function ProofModal({ isOpen, onClose, expense }) {
   if (!isOpen || !expense) return null;
 
   const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    if (isOpen) {
+      setZoom(1);
+    }
+  }, [isOpen, expense]);
 
   const handleDownload = () => {
     if (!expense.proofDataUrl) return;
@@ -828,12 +666,7 @@ export function ProofModal({ isOpen, onClose, expense, project }) {
         {/* Header */}
         <div className="p-4 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80">
-                VERIFIED PROOF
-              </span>
-              <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">{expense.vendor || 'Payment Proof'}</h3>
-            </div>
+            <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">{expense.vendor || 'Payment Receipt'}</h3>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono-num mt-0.5">
               {expense.date} • {expense.paymentMode} • UTR: {expense.utrNumber || 'N/A'}
             </p>
@@ -876,18 +709,18 @@ export function ProofModal({ isOpen, onClose, expense, project }) {
               className="max-w-full max-h-[65vh] object-contain rounded-xl shadow-md transition-transform duration-150"
             />
           ) : (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No proof file attached.</p>
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No receipt file attached.</p>
           )}
         </div>
 
         {/* Details Footer */}
         <div className="p-4 bg-white/95 dark:bg-zinc-900/95 border-t border-zinc-200/60 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
           <div>
-            <span className="font-semibold text-zinc-500 dark:text-zinc-400">Who gave amount: </span>
+            <span className="font-semibold text-zinc-500 dark:text-zinc-400">Paid by: </span>
             <span className="font-bold text-emerald-700 dark:text-emerald-400">{expense.payer}</span>
             <span className="text-zinc-300 dark:text-zinc-700 mx-2">•</span>
-            <span className="font-semibold text-zinc-500 dark:text-zinc-400">Project: </span>
-            <span className="font-bold text-zinc-900 dark:text-white">{project ? project.title : 'General'}</span>
+            <span className="font-semibold text-zinc-500 dark:text-zinc-400">Spend Area: </span>
+            <span className="font-bold text-zinc-900 dark:text-white">{expense.spendArea || expense.category || 'General'}</span>
           </div>
           <div className="text-right">
             <span className="text-xs text-zinc-400 dark:text-zinc-500 mr-2">Amount:</span>
@@ -901,8 +734,8 @@ export function ProofModal({ isOpen, onClose, expense, project }) {
   );
 }
 
-// 5. Impact Modal ("How It Helped the Project")
-export function ImpactModal({ isOpen, onClose, expense, project }) {
+// 4. Impact Modal ("How It Helped the Venture")
+export function ImpactModal({ isOpen, onClose, expense }) {
   if (!isOpen || !expense) return null;
 
   return (
@@ -910,12 +743,12 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
       <div className="glass-modal rounded-3xl max-w-lg w-full shadow-2xl p-5 sm:p-6 space-y-4">
         <div className="flex justify-between items-start border-b border-zinc-200/60 dark:border-zinc-800 pb-3">
           <div>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80">
-              EXPENDITURE IMPACT STORY
-            </span>
-            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white mt-1">
-              How this ₹{Number(expense.amount).toLocaleString('en-IN')} helped Delizoo
+            <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+              Business Outcome & ROI
             </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              ₹{Number(expense.amount).toLocaleString('en-IN')} spent on {expense.spendArea || expense.category || 'Operations'}
+            </p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
             <X className="w-5 h-5" />
@@ -925,10 +758,10 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
         <div className="space-y-3.5 text-xs">
           <div className="bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-4">
             <h4 className="font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-[11px] mb-2">
-              Business Outcome & ROI:
+              Outcome Summary:
             </h4>
-            <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed italic">
-              “{expense.howItHelped || 'No impact notes recorded.'}”
+            <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed leading-normal">
+              {expense.howItHelped || 'No outcome notes recorded.'}
             </p>
           </div>
 
@@ -948,9 +781,9 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
               </span>
             </div>
             <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">LINKED PROJECT</span>
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">SPEND AREA</span>
               <span className="text-xs font-bold text-zinc-900 dark:text-white truncate block">
-                {project ? project.title : 'General'}
+                {expense.spendArea || expense.category || 'General'}
               </span>
             </div>
           </div>
@@ -961,7 +794,7 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold text-xs transition-all shadow-sm"
           >
-            Done
+            Close
           </button>
         </div>
       </div>
@@ -969,16 +802,22 @@ export function ImpactModal({ isOpen, onClose, expense, project }) {
   );
 }
 
-// 6. Partner & Investor Capital Management Modal (New!)
+// 5. Partner & Investor Capital Management Modal
 export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
   if (!isOpen) return null;
 
-  const [partnerList, setPartnerList] = useState(() => {
-    return (partners && partners.length > 0 ? partners : DEFAULT_PARTNERS).map(p => ({
-      ...p,
-      investment: Number(p.investment) || 0
-    }));
-  });
+  const [partnerList, setPartnerList] = useState([]);
+
+  // Sync partner list with current partners when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const initialList = (partners && partners.length > 0 ? partners : DEFAULT_PARTNERS).map(p => ({
+        ...p,
+        investment: p.investment !== undefined && p.investment !== null ? p.investment : 50000
+      }));
+      setPartnerList(initialList);
+    }
+  }, [isOpen, partners]);
 
   const totalPool = useMemo(() => {
     return partnerList.reduce((acc, p) => acc + (Number(p.investment) || 0), 0);
@@ -1016,7 +855,13 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSavePartners(partnerList);
+    const formatted = partnerList.map(p => ({
+      ...p,
+      name: (p.name || '').trim(),
+      role: (p.role || 'Partner').trim(),
+      investment: Number(p.investment) || 0
+    }));
+    onSavePartners(formatted);
     onClose();
   };
 
@@ -1112,8 +957,8 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
                       min="0"
                       step="1000"
                       required
-                      value={p.investment}
-                      onChange={(e) => handleUpdate(idx, 'investment', Number(e.target.value))}
+                      value={p.investment === 0 ? '0' : (p.investment ?? '')}
+                      onChange={(e) => handleUpdate(idx, 'investment', e.target.value === '' ? '' : e.target.value)}
                       placeholder="e.g. 50000"
                       className="w-full text-[11px] font-mono-num font-bold text-zinc-900 dark:text-white glass-input px-2.5 py-1 rounded-lg outline-none"
                     />

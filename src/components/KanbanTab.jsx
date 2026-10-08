@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, User, Trash2, CheckSquare } from 'lucide-react';
+import { Plus, User, Trash2, Edit2, CheckSquare } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { CustomSelect } from './ui/CustomSelect';
+import { SPEND_AREAS } from '../services/storage';
 
 export function KanbanTab({
   tasks,
-  projects,
   onSaveTask,
+  onEditTask,
   onDeleteTask,
   onOpenTaskModal,
   searchQuery
 }) {
-  const [filterProject, setFilterProject] = useState('All');
+  const [filterSpendArea, setFilterSpendArea] = useState('All');
   const columns = [
     { id: 'To Do', label: 'To Do / Backlog', color: 'bg-zinc-400 dark:bg-zinc-500' },
     { id: 'In Progress', label: 'In Progress', color: 'bg-zinc-700 dark:bg-zinc-300' },
@@ -19,21 +20,18 @@ export function KanbanTab({
     { id: 'Completed', label: 'Completed', color: 'bg-emerald-500' }
   ];
 
-  const projMap = useMemo(() => {
-    const map = {};
-    projects.forEach(p => { map[p.id] = p; });
-    return map;
-  }, [projects]);
-
   // Dynamic filter
   const filteredTasks = tasks.filter(t => {
-    if (filterProject !== 'All' && t.projectId !== filterProject) return false;
+    if (filterSpendArea !== 'All') {
+      const area = t.spendArea || '';
+      if (area.toLowerCase() !== filterSpendArea.toLowerCase()) return false;
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchTitle = (t.title || '').toLowerCase().includes(q);
       const matchAssignee = (t.assignee || '').toLowerCase().includes(q);
-      const matchProj = (projMap[t.projectId]?.title || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchAssignee && !matchProj) return false;
+      const matchArea = (t.spendArea || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchAssignee && !matchArea) return false;
     }
     return true;
   });
@@ -48,48 +46,45 @@ export function KanbanTab({
   };
 
   const handleToggleChecklist = (task, itemIndex) => {
+    const currentCompleted = task.completedItems || [];
+    const updatedCompleted = currentCompleted.includes(itemIndex)
+      ? currentCompleted.filter(i => i !== itemIndex)
+      : [...currentCompleted, itemIndex];
+
     const updated = {
       ...task,
-      completedItems: task.completedItems || []
+      completedItems: updatedCompleted
     };
-    if (updated.completedItems.includes(itemIndex)) {
-      updated.completedItems = updated.completedItems.filter(i => i !== itemIndex);
-    } else {
-      updated.completedItems.push(itemIndex);
-    }
     onSaveTask(updated);
   };
 
   return (
     <div className="space-y-5 sm:space-y-6 pb-12">
-      {/* Header and Project Filter Bar */}
+      {/* Header and Operational Stream Filter Bar */}
       <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight">
-            Team Task Board
+            Milestones & Operational Tasks
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Actionable workflow board for operational, marketing, and merchant milestones.
+            Actionable workflow board for launch blitz, fleet onboarding, and marketing collateral.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {projects.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Project:</span>
-              <CustomSelect
-                value={filterProject}
-                onChange={setFilterProject}
-                size="sm"
-                className="w-44"
-                searchable={projects.length > 5}
-                options={[
-                  { value: 'All', label: 'All Projects' },
-                  ...projects.map(p => ({ value: p.id, label: p.title }))
-                ]}
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Stream:</span>
+            <CustomSelect
+              value={filterSpendArea}
+              onChange={setFilterSpendArea}
+              size="sm"
+              className="w-52"
+              options={[
+                { value: 'All', label: 'All Streams' },
+                ...SPEND_AREAS.map(a => ({ value: a, label: a }))
+              ]}
+            />
+          </div>
 
           <button
             onClick={onOpenTaskModal}
@@ -105,12 +100,12 @@ export function KanbanTab({
         <EmptyState
           type="tasks"
           title="No tasks on the board"
-          description="Plan and organize tasks across your campaigns, flyer distribution runs, and merchant onboarding."
+          description="Plan and organize tasks across marketing campaigns, flyer distribution runs, and rider kits."
           actionText="Create First Task"
           onAction={onOpenTaskModal}
         />
       ) : (
-        /* Kanban Columns Grid - Responsive Horizontal Scroll on Mobile */
+        /* Kanban Columns Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
           {columns.map(col => {
             const colTasks = filteredTasks.filter(t => (t.status || 'To Do') === col.id);
@@ -128,7 +123,7 @@ export function KanbanTab({
                       {col.label}
                     </h3>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[11px] font-bold font-mono-num border border-zinc-200/70 dark:border-zinc-700">
+                  <span className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[11px] font-bold font-mono-num border border-zinc-200/70 dark:border-zinc-700">
                     {colTasks.length}
                   </span>
                 </div>
@@ -141,9 +136,9 @@ export function KanbanTab({
                     </div>
                   ) : (
                     colTasks.map(task => {
-                      const proj = projMap[task.projectId];
                       const completedItems = task.completedItems || [];
                       const totalItems = (task.checklist || []).length;
+                      const area = task.spendArea || 'General Operations';
 
                       return (
                         <div
@@ -152,15 +147,15 @@ export function KanbanTab({
                         >
                           {/* Tags */}
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-600 truncate max-w-[140px]">
-                              {proj ? proj.department : 'General'}
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700 truncate max-w-[140px]">
+                              {area}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
                               task.priority === 'Urgent'
                                 ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                                 : task.priority === 'High'
-                                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600'
-                                : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-600'
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
+                                : 'bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700'
                             }`}>
                               {task.priority || 'Normal'}
                             </span>
@@ -170,11 +165,6 @@ export function KanbanTab({
                           <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug">
                             {task.title}
                           </h4>
-                          {proj && (
-                            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
-                              ↳ {proj.title}
-                            </p>
-                          )}
 
                           {/* Sub-task Checklists */}
                           {totalItems > 0 && (
@@ -209,7 +199,7 @@ export function KanbanTab({
                           {/* Assignee & Due Date */}
                           <div className="flex items-center justify-between text-[11px] pt-2 border-t border-zinc-100 dark:border-zinc-700/70 text-zinc-500 dark:text-zinc-400">
                             <div className="flex items-center gap-1">
-                              <User className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />
+                              <User className="w-3 text-zinc-400 dark:text-zinc-500" />
                               <span className="font-semibold text-zinc-700 dark:text-zinc-300">{task.assignee || 'Unassigned'}</span>
                             </div>
                             {task.dueDate && (
@@ -219,7 +209,7 @@ export function KanbanTab({
                             )}
                           </div>
 
-                          {/* Move Column Selector & Delete */}
+                          {/* Move Column Selector, Edit & Delete */}
                           <div className="flex items-center justify-between pt-1 gap-1.5">
                             <CustomSelect
                               value={task.status || 'To Do'}
@@ -231,10 +221,19 @@ export function KanbanTab({
                                 label: `Move: ${c.label}`
                               }))}
                             />
+                            {onEditTask && (
+                              <button
+                                onClick={() => onEditTask(task)}
+                                className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all shrink-0 cursor-pointer"
+                                title="Edit Task"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => onDeleteTask(task.id)}
                               className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all shrink-0 cursor-pointer"
-                              title="Delete"
+                              title="Delete Task"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
