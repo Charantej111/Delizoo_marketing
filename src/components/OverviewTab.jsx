@@ -72,14 +72,14 @@ export function OverviewTab({
       <div className="glass-panel rounded-2xl p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
               Operations & Budget Command Center
             </h1>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-200/80">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] border border-emerald-200/80 dark:border-emerald-800/80">
               LIVE
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             Real-time project tracking, cash flow accountability, and verified proofs for Delizoo Kakinada.
           </p>
         </div>
@@ -87,13 +87,13 @@ export function OverviewTab({
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
             onClick={() => setActiveTab('expenses')}
-            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-white/80 hover:bg-white text-slate-700 border border-slate-200/80 text-xs font-bold transition-all shadow-2xs"
+            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold transition-all shadow-2xs"
           >
             Full Ledger
           </button>
           <button
             onClick={onOpenExpenseModal}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
+            className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
           >
             + Record Expense
           </button>
@@ -106,18 +106,18 @@ export function OverviewTab({
         <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Allocated Budget</span>
-              <span className="p-2 rounded-xl bg-slate-100 text-slate-700">
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Allocated Budget</span>
+              <span className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 <FolderKanban className="w-4 h-4" />
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono-num text-slate-900">
+            <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white">
               ₹{totalBudget.toLocaleString('en-IN')}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-slate-200/60 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-3 pt-2 border-t border-zinc-200/60 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{projects.length} Initiatives</span>
-            <span className="font-semibold text-slate-800">{projects.length > 0 ? 'Active' : 'Empty'}</span>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">{projects.length > 0 ? 'Active' : 'Empty'}</span>
           </div>
         </div>
 
@@ -125,18 +125,18 @@ export function OverviewTab({
         <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Real Spend</span>
-              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Real Spend</span>
+              <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/60">
                 <IndianRupee className="w-4 h-4" />
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600">
+            <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400">
               ₹{totalSpent.toLocaleString('en-IN')}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-slate-200/60 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-3 pt-2 border-t border-zinc-200/60 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{totalBudget > 0 ? `${budgetUtilization}% utilized` : 'No budget'}</span>
-            <span className="font-semibold text-slate-700">{expenses.length} bills</span>
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">{expenses.length} bills</span>
           </div>
         </div>
 
@@ -144,18 +144,18 @@ export function OverviewTab({
         <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Remaining Balance</span>
-              <span className="p-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-100">
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Remaining Balance</span>
+              <span className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 <Wallet className="w-4 h-4" />
               </span>
             </div>
-            <div className={`text-2xl sm:text-3xl font-black font-mono-num ${remainingBudget >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
+            <div className={`text-2xl sm:text-3xl font-black font-mono-num ${remainingBudget >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>
               ₹{remainingBudget.toLocaleString('en-IN')}
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-slate-200/60 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-3 pt-2 border-t border-zinc-200/60 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{remainingBudget >= 0 ? 'Surplus funds' : 'Over budget'}</span>
-            <span className={`font-semibold ${remainingBudget >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <span className={`font-semibold ${remainingBudget >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {totalBudget > 0 ? `${100 - budgetUtilization}% left` : '—'}
             </span>
           </div>
@@ -165,18 +165,18 @@ export function OverviewTab({
         <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Milestones Done</span>
-              <span className="p-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Milestones Done</span>
+              <span className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 <CheckCircle2 className="w-4 h-4" />
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono-num text-slate-900">
+            <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white">
               {taskProgress}%
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t border-slate-200/60 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-3 pt-2 border-t border-zinc-200/60 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{completedTasks} of {totalTasks} finished</span>
-            <span className="font-semibold text-slate-700">{totalTasks - completedTasks} open</span>
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">{totalTasks - completedTasks} open</span>
           </div>
         </div>
       </div>
@@ -198,16 +198,16 @@ export function OverviewTab({
             <div className="glass-panel rounded-2xl p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Spend by Department</h3>
-                  <p className="text-[11px] text-slate-500">Live comparison against allocated budget</p>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Spend by Department</h3>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Live comparison against allocated budget</p>
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                   {Object.keys(deptStats).length} Depts
                 </span>
               </div>
 
               {Object.keys(deptStats).length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">No department activity yet.</p>
+                <p className="text-xs text-zinc-400 py-6 text-center">No department activity yet.</p>
               ) : (
                 <div className="space-y-4">
                   {Object.entries(deptStats).map(([dept, stat]) => {
@@ -215,16 +215,16 @@ export function OverviewTab({
                     return (
                       <div key={dept} className="space-y-1.5">
                         <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-800">{dept}</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{dept}</span>
                           <div className="font-mono-num space-x-1.5">
-                            <span className="font-bold text-slate-900">₹{stat.spent.toLocaleString('en-IN')}</span>
-                            <span className="text-slate-400">/ ₹{stat.budget.toLocaleString('en-IN')}</span>
+                            <span className="font-bold text-zinc-900 dark:text-white">₹{stat.spent.toLocaleString('en-IN')}</span>
+                            <span className="text-zinc-400 dark:text-zinc-500">/ ₹{stat.budget.toLocaleString('en-IN')}</span>
                           </div>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              pct > 90 ? 'bg-rose-500' : pct > 60 ? 'bg-blue-500' : 'bg-emerald-500'
+                              pct > 90 ? 'bg-rose-500' : pct > 60 ? 'bg-zinc-600 dark:bg-zinc-400' : 'bg-emerald-500'
                             }`}
                             style={{ width: `${pct}%` }}
                           />
@@ -240,16 +240,16 @@ export function OverviewTab({
             <div className="glass-panel rounded-2xl p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Funding Sources (Who Paid)</h3>
-                  <p className="text-[11px] text-slate-500">Real-time ledger of who funded each expenditure</p>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Funding Sources (Who Paid)</h3>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Real-time ledger of who funded each expenditure</p>
                 </div>
-                <span className="text-xs font-bold text-emerald-700 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80">
                   {sortedPayers.length} Sources
                 </span>
               </div>
 
               {sortedPayers.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">
+                <p className="text-xs text-zinc-400 py-6 text-center">
                   No payers recorded yet. Add an expense to see contributor analytics.
                 </p>
               ) : (
@@ -259,22 +259,22 @@ export function OverviewTab({
                     return (
                       <div
                         key={payer}
-                        className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-slate-200/70 hover:bg-white transition-all shadow-2xs"
+                        className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-zinc-800/60 border border-zinc-200/70 dark:border-zinc-800 hover:bg-white dark:hover:bg-zinc-800 transition-all shadow-2xs"
                       >
                         <div className="flex items-center gap-2.5 sm:gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-extrabold text-slate-700">
+                          <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 flex items-center justify-center text-xs font-extrabold text-zinc-700 dark:text-zinc-200">
                             {payer.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-xs sm:text-sm font-bold text-slate-900">{payer}</p>
-                            <p className="text-[11px] text-slate-500">{data.count} payment{data.count > 1 ? 's' : ''}</p>
+                            <p className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">{payer}</p>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{data.count} payment{data.count > 1 ? 's' : ''}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs sm:text-sm font-mono-num font-extrabold text-slate-900">
+                          <p className="text-xs sm:text-sm font-mono-num font-extrabold text-zinc-900 dark:text-white">
                             ₹{data.amount.toLocaleString('en-IN')}
                           </p>
-                          <p className="text-[10px] text-slate-400 font-medium">{share}% of total</p>
+                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">{share}% of total</p>
                         </div>
                       </div>
                     );
@@ -288,13 +288,13 @@ export function OverviewTab({
           <div className="glass-panel rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Recent Expenditures & Proofs</h3>
-                <p className="text-[11px] text-slate-500">Latest transactions with proof verification and ROI impact notes</p>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Recent Expenditures & Proofs</h3>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Latest transactions with proof verification and ROI impact notes</p>
               </div>
               {expenses.length > 0 && (
                 <button
                   onClick={() => setActiveTab('expenses')}
-                  className="text-xs font-bold text-slate-800 hover:text-slate-900 flex items-center gap-1 hover:underline"
+                  className="text-xs font-bold text-zinc-800 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline cursor-pointer"
                 >
                   <span>See all ({expenses.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -303,39 +303,39 @@ export function OverviewTab({
             </div>
 
             {recentExpenses.length === 0 ? (
-              <p className="text-xs text-slate-400 py-8 text-center">
+              <p className="text-xs text-zinc-400 py-8 text-center">
                 No expenditures recorded yet. Click "+ Record Expense" to log your first payment.
               </p>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {recentExpenses.map((exp) => {
                   const proj = projects.find(p => p.id === exp.projectId);
                   return (
                     <div
                       key={exp.id}
-                      className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 px-2 rounded-xl transition-colors"
+                      className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/50 px-2 rounded-xl transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-mono-num text-xs font-bold shrink-0 mt-0.5">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-mono-num text-xs font-bold shrink-0 mt-0.5">
                           ₹
                         </div>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-xs sm:text-sm text-slate-900">
+                            <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white">
                               {exp.vendor || 'Direct Payee'}
                             </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/80 font-medium">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700 font-medium">
                               {proj ? proj.department : (exp.department || 'General')}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-mono-num">{exp.date}</span>
+                            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">{exp.date}</span>
                           </div>
-                          <p className="text-xs text-slate-600 mt-0.5">
-                            <span className="font-semibold text-emerald-700">Paid by: {exp.payer}</span>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400">Paid by: {exp.payer}</span>
                             {' • '}
-                            <span className="text-slate-500">{proj ? proj.title : 'General Initiative'}</span>
+                            <span className="text-zinc-500 dark:text-zinc-400">{proj ? proj.title : 'General Initiative'}</span>
                           </p>
                           {exp.howItHelped && (
-                            <p className="text-xs text-slate-500 italic mt-1 line-clamp-1 max-w-xl">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 italic mt-1 line-clamp-1 max-w-xl">
                               “{exp.howItHelped}”
                             </p>
                           )}
@@ -344,10 +344,10 @@ export function OverviewTab({
 
                       <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
                         <div className="text-right">
-                          <div className="text-sm sm:text-base font-black font-mono-num text-slate-900">
+                          <div className="text-sm sm:text-base font-black font-mono-num text-zinc-900 dark:text-white">
                             ₹{Number(exp.amount).toLocaleString('en-IN')}
                           </div>
-                          <div className="text-[10px] font-mono-num text-slate-400">
+                          <div className="text-[10px] font-mono-num text-zinc-400 dark:text-zinc-500">
                             {exp.paymentMode || 'UPI'}
                           </div>
                         </div>
@@ -355,10 +355,10 @@ export function OverviewTab({
                         {exp.proofDataUrl && (
                           <button
                             onClick={() => onViewProof(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-700 flex items-center gap-1 shadow-2xs transition-all"
+                            className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
                             title="Inspect Proof"
                           >
-                            <Eye className="w-3.5 h-3.5 text-slate-600" />
+                            <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                             <span>Proof</span>
                           </button>
                         )}
@@ -366,7 +366,7 @@ export function OverviewTab({
                         {exp.howItHelped && (
                           <button
                             onClick={() => onViewImpact(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/70 border border-slate-200 text-xs font-semibold text-slate-800 transition-all"
+                            className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all cursor-pointer"
                             title="View Impact"
                           >
                             Impact

@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-brand-primary: #0f172a;
+  --color-brand-primary: #18181b;
   --color-brand-accent: #10b981;
-  --color-brand-blue: #3b82f6;
-  --color-brand-surface: #f8fafc;
+  --color-brand-surface: #fafafa;
   --color-brand-card: rgba(255, 255, 255, 0.8);
-  --color-brand-border: rgba(226, 232, 240, 0.8);
+  --color-brand-border: rgba(228, 228, 231, 0.8);
 
   --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -14,16 +15,25 @@
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #fafafa;
+  color: #18181b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(241, 245, 249, 1) 0, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(226, 232, 240, 0.35) 0, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(248, 250, 252, 1) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(244, 244, 245, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(228, 228, 231, 0.45) 0, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(250, 250, 250, 1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
+}
+
+.dark body {
+  background-color: #09090b;
+  color: #f4f4f5;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(24, 24, 27, 0.85) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(39, 39, 42, 0.35) 0, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(9, 9, 11, 1) 0, transparent 50%);
 }
 
 .font-mono-num {
@@ -33,11 +43,19 @@ body {
 
 /* Glassmorphism Surface Utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(228, 228, 231, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.dark .glass-panel {
+  background: rgba(18, 18, 20, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(39, 39, 42, 0.75);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
 }
 
 .glass-panel-hover {
@@ -45,37 +63,71 @@ body {
 }
 
 .glass-panel-hover:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(203, 213, 225, 0.8);
-  box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.05), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(212, 212, 216, 0.9);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.05), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
   transform: translateY(-1px);
 }
 
+.dark .glass-panel-hover:hover {
+  background: rgba(24, 24, 27, 0.92);
+  border-color: rgba(63, 63, 70, 0.85);
+  box-shadow: 0 10px 28px -3px rgba(0, 0, 0, 0.6), 0 4px 10px -2px rgba(0, 0, 0, 0.4);
+}
+
 .glass-header {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  border-bottom: 1px solid rgba(228, 228, 231, 0.8);
+}
+
+.dark .glass-header {
+  background: rgba(12, 12, 14, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(39, 39, 42, 0.8);
 }
 
 .glass-modal {
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+  border: 1px solid rgba(228, 228, 231, 0.9);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .glass-modal {
+  background: rgba(18, 18, 20, 0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(39, 39, 42, 0.85);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
 .glass-input {
-  background: rgba(248, 250, 252, 0.85);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(244, 244, 245, 0.85);
+  border: 1px solid rgba(228, 228, 231, 0.9);
+  color: #18181b;
   transition: all 0.15s ease;
+}
+
+.dark .glass-input {
+  background: rgba(24, 24, 27, 0.8);
+  border: 1px solid rgba(39, 39, 42, 0.85);
+  color: #f4f4f5;
 }
 
 .glass-input:focus {
   background: #ffffff;
-  border-color: #0f172a;
-  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
+  border-color: #18181b;
+  box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.08);
+}
+
+.dark .glass-input:focus {
+  background: rgba(24, 24, 27, 0.98);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 /* Custom Scrollbars */
@@ -89,12 +141,20 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.8);
+  background: rgba(212, 212, 216, 0.8);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.9);
+  background: rgba(161, 161, 170, 0.9);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(63, 63, 70, 0.8);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(82, 82, 91, 0.9);
 }
 
 .scrollbar-none::-webkit-scrollbar {

@@ -23,6 +23,30 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectIdForExpenses, setSelectedProjectIdForExpenses] = useState('All');
 
+  // Dark / Light Theme State
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('delizoo_theme_preference');
+      if (saved) return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('delizoo_theme_preference', theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   // Modal States
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
@@ -174,14 +198,14 @@ export default function App() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <div className="w-8 h-8 border-3 border-zinc-900 dark:border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen flex flex-col selection:bg-zinc-900 dark:selection:bg-emerald-500 selection:text-white dark:selection:text-zinc-950 transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -193,6 +217,8 @@ export default function App() {
         expenseCount={expenses.length}
         projectCount={projects.length}
         taskCount={tasks.length}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       {/* Main Container */}
@@ -261,10 +287,10 @@ export default function App() {
       </main>
 
       {/* Glassmorphism Footer */}
-      <footer className="glass-header py-4 mt-auto no-print border-t border-slate-200/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
+      <footer className="glass-header py-4 mt-auto no-print border-t border-zinc-200/60 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-zinc-500 dark:text-zinc-400">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-            <span className="font-extrabold text-slate-900">DELIZOO EATS</span>
+            <span className="font-extrabold text-zinc-900 dark:text-white">DELIZOO EATS</span>
             <span>•</span>
             <span>Food Delivery Operations (Kakinada)</span>
             <span>•</span>
@@ -272,7 +298,7 @@ export default function App() {
               href="https://delizoo.in"
               target="_blank"
               rel="noreferrer"
-              className="text-slate-800 hover:text-slate-950 hover:underline font-semibold"
+              className="text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:underline font-semibold"
             >
               delizoo.in
             </a>

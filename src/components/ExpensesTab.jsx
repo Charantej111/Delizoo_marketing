@@ -125,25 +125,25 @@ export function ExpensesTab({
       {/* Financial Metrics Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
             Total Spent in View
           </span>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-slate-900">
+          <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white">
             ₹{totalFilteredSpent.toLocaleString('en-IN')}
           </div>
-          <div className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             {sortedExpenses.length} transactions recorded
           </div>
         </div>
 
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
             Verified Receipts
           </span>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600">
+          <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400">
             {proofCount} / {sortedExpenses.length}
           </div>
-          <div className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             {sortedExpenses.length > 0 && proofCount === sortedExpenses.length
               ? '100% verified compliance'
               : `${sortedExpenses.length - proofCount} pending receipts`}
@@ -151,36 +151,36 @@ export function ExpensesTab({
         </div>
 
         <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
             Top Funding Source
           </span>
-          <div className="text-base sm:text-lg font-bold text-slate-900 truncate mt-1">
+          <div className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white truncate mt-1">
             {payers.length > 1 ? payers[1] : '—'}
           </div>
-          <div className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             {payers.length > 1 ? 'Leading capital provider' : 'No sources yet'}
           </div>
         </div>
 
         <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
               Quick Actions
             </span>
-            <div className="text-xs text-slate-500">Export ledger or record bill</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">Export ledger or record bill</div>
           </div>
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={() => storageService.exportCsv(expenses, projects)}
               disabled={expenses.length === 0}
-              className="px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white/90 hover:bg-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV</span>
             </button>
             <button
               onClick={onOpenExpenseModal}
-              className="flex-1 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all text-center shadow-sm"
+              className="flex-1 px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all text-center shadow-sm active:scale-[0.98] cursor-pointer"
             >
               + Log Expense
             </button>
@@ -192,9 +192,9 @@ export function ExpensesTab({
       {expenses.length > 0 && (
         <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <h3 className="text-sm font-bold text-slate-900">Filter & Sort Ledger</h3>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Filter & Sort Ledger</h3>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400">Sort:</span>
+              <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">Sort:</span>
               <CustomSelect
                 value={sortBy}
                 onChange={setSortBy}
@@ -213,7 +213,7 @@ export function ExpensesTab({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Project Filter */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">PROJECT</label>
+              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PROJECT</label>
               <CustomSelect
                 value={selectedProjectId || 'All'}
                 onChange={setSelectedProjectId}
@@ -228,7 +228,7 @@ export function ExpensesTab({
 
             {/* Who gave amount Filter */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">WHO GAVE AMOUNT</label>
+              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">WHO GAVE AMOUNT</label>
               <CustomSelect
                 value={filterPayer}
                 onChange={setFilterPayer}
@@ -243,7 +243,7 @@ export function ExpensesTab({
 
             {/* Category Filter */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">CATEGORY</label>
+              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">CATEGORY</label>
               <CustomSelect
                 value={filterCategory}
                 onChange={setFilterCategory}
@@ -258,7 +258,7 @@ export function ExpensesTab({
 
             {/* Payment Mode */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">PAYMENT MODE</label>
+              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PAYMENT MODE</label>
               <CustomSelect
                 value={filterPaymentMode}
                 onChange={setFilterPaymentMode}
@@ -275,7 +275,7 @@ export function ExpensesTab({
 
             {/* Date / Period Filter */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">TIMEFRAME</label>
+              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">TIMEFRAME</label>
               <CustomSelect
                 value={filterDatePreset}
                 onChange={(val) => {
@@ -296,8 +296,8 @@ export function ExpensesTab({
 
           {/* If Custom Date selected, show bespoke calendar picker */}
           {filterDatePreset === 'Custom' && (
-            <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
-              <span className="text-xs font-semibold text-slate-500">Select Date:</span>
+            <div className="pt-2 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-800">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Select Date:</span>
               <div className="w-56">
                 <CustomDatePicker
                   value={filterCustomDate}
@@ -310,7 +310,7 @@ export function ExpensesTab({
                 <button
                   type="button"
                   onClick={() => setFilterCustomDate('')}
-                  className="text-xs text-rose-500 hover:text-rose-700 font-semibold"
+                  className="text-xs text-rose-500 hover:text-rose-400 font-semibold cursor-pointer"
                 >
                   Clear date
                 </button>
@@ -329,7 +329,7 @@ export function ExpensesTab({
                   setFilterDatePreset('All');
                   setFilterCustomDate('');
                 }}
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 hover:underline transition-all"
+                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline transition-all cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Reset All Filters</span>
@@ -352,7 +352,7 @@ export function ExpensesTab({
           {/* Mobile Card List (Shows on screens < 768px for optimal phone readability) */}
           <div className="md:hidden space-y-3">
             {sortedExpenses.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-8">
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8">
                 No expenditures match the current filter selection.
               </p>
             ) : (
@@ -366,56 +366,56 @@ export function ExpensesTab({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-lg font-black font-mono-num text-slate-900">
+                        <div className="text-lg font-black font-mono-num text-zinc-900 dark:text-white">
                           ₹{Number(exp.amount).toLocaleString('en-IN')}
                         </div>
-                        <div className="text-xs font-semibold text-slate-800 mt-0.5">
+                        <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                           {exp.vendor || 'Direct Payee'}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono-num">
+                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
                           {exp.date} {exp.time ? `• ${exp.time}` : ''}
                         </div>
                       </div>
 
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200/70">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/70 dark:border-emerald-800/70">
                         {exp.payer}
                       </span>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
                       <div>
-                        <span className="font-medium text-slate-700">{proj ? proj.title : 'General'}</span>
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">{proj ? proj.title : 'General'}</span>
                         <span className="mx-1">•</span>
                         <span>{exp.paymentMode || 'UPI'}</span>
                       </div>
                       {exp.category && (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                           {exp.category}
                         </span>
                       )}
                     </div>
 
                     {exp.howItHelped && (
-                      <p className="text-xs text-slate-600 bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/50 italic leading-relaxed">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 italic leading-relaxed">
                         “{exp.howItHelped}”
                       </p>
                     )}
 
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         {exp.proofDataUrl && (
                           <button
                             onClick={() => onViewProof(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-1 shadow-2xs"
+                            className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs cursor-pointer"
                           >
-                            <Eye className="w-3.5 h-3.5 text-slate-600" />
+                            <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                             <span>Proof</span>
                           </button>
                         )}
                         {exp.howItHelped && (
                           <button
                             onClick={() => onViewImpact(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-800"
+                            className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 cursor-pointer"
                           >
                             Impact
                           </button>
@@ -425,13 +425,13 @@ export function ExpensesTab({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => onEditExpense(exp)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                          className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteExpense(exp.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -447,7 +447,7 @@ export function ExpensesTab({
           <div className="hidden md:block glass-panel rounded-2xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/80 border-b border-slate-200/70 text-slate-500 font-bold uppercase tracking-wider">
+                <thead className="bg-zinc-50/80 dark:bg-zinc-800/80 border-b border-zinc-200/70 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-4">Date & Time</th>
                     <th className="py-3 px-4">Amount</th>
@@ -459,10 +459,10 @@ export function ExpensesTab({
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {sortedExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="py-12 text-center text-slate-400">
+                      <td colSpan="8" className="py-12 text-center text-zinc-400 dark:text-zinc-500">
                         No expenditures match the current filter selection.
                       </td>
                     </tr>
@@ -471,43 +471,43 @@ export function ExpensesTab({
                       const proj = projMap[exp.projectId];
 
                       return (
-                        <tr key={exp.id} className="hover:bg-slate-50/60 transition-colors">
+                        <tr key={exp.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/50 transition-colors">
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="font-mono-num font-bold text-slate-900">{exp.date}</div>
+                            <div className="font-mono-num font-bold text-zinc-900 dark:text-white">{exp.date}</div>
                             {exp.time && (
-                              <div className="font-mono-num text-[11px] text-slate-400">{exp.time}</div>
+                              <div className="font-mono-num text-[11px] text-zinc-400 dark:text-zinc-500">{exp.time}</div>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="text-sm font-black font-mono-num text-slate-900">
+                            <div className="text-sm font-black font-mono-num text-zinc-900 dark:text-white">
                               ₹{Number(exp.amount).toLocaleString('en-IN')}
                             </div>
-                            <div className="text-[11px] text-slate-400">{exp.category || 'General'}</div>
+                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">{exp.category || 'General'}</div>
                           </td>
 
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200/60">
-                              <User className="w-3 h-3 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/60">
+                              <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                               <span>{exp.payer}</span>
                             </span>
                           </td>
 
                           <td className="py-3.5 px-4 max-w-xs">
-                            <div className="font-bold text-slate-900 truncate">
+                            <div className="font-bold text-zinc-900 dark:text-white truncate">
                               {proj ? proj.title : 'General Initiative'}
                             </div>
-                            <span className="text-[10px] font-medium px-2 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                            <span className="text-[10px] font-medium px-2 py-0.2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                               {proj ? proj.department : (exp.department || 'General')}
                             </span>
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <div className="font-semibold text-slate-900">{exp.vendor || 'Direct Payee'}</div>
-                            <div className="font-mono-num text-[11px] text-slate-500 flex items-center gap-1">
+                            <div className="font-semibold text-zinc-900 dark:text-white">{exp.vendor || 'Direct Payee'}</div>
+                            <div className="font-mono-num text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                               <span>{exp.paymentMode || 'UPI'}</span>
                               {exp.utrNumber && (
-                                <span className="text-slate-400"> • {exp.utrNumber}</span>
+                                <span className="text-zinc-400 dark:text-zinc-500"> • {exp.utrNumber}</span>
                               )}
                             </div>
                           </td>
@@ -516,45 +516,45 @@ export function ExpensesTab({
                             {exp.proofDataUrl ? (
                               <button
                                 onClick={() => onViewProof(exp)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-700 shadow-2xs"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 shadow-2xs transition-all cursor-pointer"
                               >
-                                <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" />
                                 <span>View Proof</span>
                               </button>
                             ) : (
-                              <span className="text-xs text-slate-400 italic">No proof</span>
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500 italic">No proof</span>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4 max-w-xs">
                             {exp.howItHelped ? (
                               <div className="space-y-1">
-                                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                                <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed">
                                   {exp.howItHelped}
                                 </p>
                                 <button
                                   onClick={() => onViewImpact(exp)}
-                                  className="text-[11px] font-bold text-slate-800 hover:text-slate-900 underline"
+                                  className="text-[11px] font-bold text-zinc-800 dark:text-emerald-400 hover:text-zinc-900 dark:hover:text-emerald-300 underline cursor-pointer"
                                 >
                                   Read Impact →
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-xs text-slate-400 italic">No notes</span>
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500 italic">No notes</span>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
                             <button
                               onClick={() => onEditExpense(exp)}
-                              className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                              className="p-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                               title="Edit"
                             >
                               <Edit2 className="w-3.5 h-3.5 inline" />
                             </button>
                             <button
                               onClick={() => onDeleteExpense(exp.id)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                              className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5 inline" />
