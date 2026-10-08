@@ -6,11 +6,10 @@ export const DEFAULT_PARTNERS = [
   { id: 'partner-2', name: 'G Pavan', role: 'Partner / Ops', investment: 50000, color: '#06b6d4' },
   { id: 'partner-3', name: 'G Sunil', role: 'Partner / Growth', investment: 50000, color: '#8b5cf6' },
   { id: 'partner-4', name: 'M Nareen', role: 'Partner / Marketing', investment: 50000, color: '#f59e0b' },
-  { id: 'partner-5', name: 'J Sandeep', role: 'Partner / Tech', investment: 50000, color: '#ec4899' },
-  { id: 'partner-6', name: 'Reserve Partner', role: 'Partner / Angel Pool', investment: 50000, color: '#6366f1' }
+  { id: 'partner-5', name: 'J Sandeep', role: 'Partner / Tech', investment: 50000, color: '#ec4899' }
 ];
 
-export const SPEND_AREAS = [
+export const DEFAULT_SPEND_AREAS = [
   'Digital Ads & Marketing',
   'Visiting Cards & Printing',
   'Rider Fleet & Delivery Kits',
@@ -21,14 +20,18 @@ export const SPEND_AREAS = [
   'Office & Operations'
 ];
 
-export const POPULAR_CATEGORIES = SPEND_AREAS.map(area => ({ label: area }));
+export const SPEND_AREAS = DEFAULT_SPEND_AREAS;
+
+export const POPULAR_CATEGORIES = DEFAULT_SPEND_AREAS.map(area => ({ label: area }));
 
 const STORAGE_KEYS = {
   PROJECTS: 'delizoo_user_projects',
   TASKS: 'delizoo_user_tasks',
   EXPENSES: 'delizoo_user_expenses',
-  PARTNERS: 'delizoo_user_partners'
+  PARTNERS: 'delizoo_user_partners',
+  SPEND_AREAS: 'delizoo_user_spend_areas'
 };
+
 
 /**
  * Normalizes any short / alias names (e.g. "Charan", "Sunil", "Pavan")
@@ -92,17 +95,6 @@ export function normalizePayerName(rawName, partners = DEFAULT_PARTNERS) {
     return 'J Sandeep';
   }
 
-  if (
-    lower === 'reserve' ||
-    lower === 'reserve partner' ||
-    lower === 'angel pool' ||
-    lower === 'founders pool' ||
-    lower === 'partner 6' ||
-    lower === 'partner-6'
-  ) {
-    return 'Reserve Partner';
-  }
-
   // 2. Search against current partner list
   for (const p of partners) {
     const pLower = p.name.toLowerCase();
@@ -126,17 +118,27 @@ export const storageService = {
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       let rawExpenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
       
-      // Load and clean partners list (preserve user's custom capital allocations)
+      // Load and clean partners list (preserve user's exact partner configuration)
       let rawPartners = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARTNERS) || 'null');
       let partners = DEFAULT_PARTNERS;
 
       if (rawPartners && Array.isArray(rawPartners) && rawPartners.length > 0) {
-        // Deduplicate any old legacy aliases like standalone "Sunil" or "Charan" in partners
+        // Deduplicate and clean partners
         const seenNames = new Set();
         const cleaned = [];
 
         rawPartners.forEach(p => {
           if (!p || !p.name) return;
+          const trimmedName = p.name.trim();
+
+          // If Reserve Partner was previously auto-injected and has no expenses, clean it up
+          if (trimmedName.toLowerCase() === 'reserve partner' || trimmedName.toLowerCase() === 'reserve') {
+            const hasExpenses = rawExpenses.some(e => e.payer && normalizePayerName(e.payer).toLowerCase() === 'reserve partner');
+            if (!hasExpenses) {
+              return; // Do not keep auto-injected reserve partner
+            }
+          }
+
           const canonicalName = normalizePayerName(p.name, DEFAULT_PARTNERS);
           if (!seenNames.has(canonicalName)) {
             seenNames.add(canonicalName);
@@ -163,15 +165,8 @@ export const storageService = {
           }
         });
 
-        // Ensure all 6 default partners exist in the list
-        DEFAULT_PARTNERS.forEach(dp => {
-          if (!seenNames.has(dp.name)) {
-            cleaned.push(dp);
-            seenNames.add(dp.name);
-          }
-        });
-
-        partners = cleaned;
+        // Keep whatever the user saved - NEVER force inject Reserve Partner!
+        partners = cleaned.length > 0 ? cleaned : DEFAULT_PARTNERS;
         this.savePartners(partners);
       } else {
         partners = DEFAULT_PARTNERS;
@@ -191,14 +186,32 @@ export const storageService = {
         return e;
       });
 
-      if (expensesModified) {
-        this.saveExpenses(expenses);
+      // Load custom spend areas
+      let rawSpendAreas = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPEND_AREAS) || 'null');
+      const spendAreasSet = new Set(DEFAULT_SPEND_AREAS);
+
+      if (Array.isArray(rawSpendAreas)) {
+        rawSpendAreas.forEach(a => {
+          if (typeof a === 'string' && a.trim()) spendAreasSet.add(a.trim());
+        });
       }
 
-      return { projects, tasks, expenses, partners };
+      // Also gather any spend areas present in expenses or tasks
+      rawExpenses.forEach(e => {
+        if (e.spendArea?.trim()) spendAreasSet.add(e.spendArea.trim());
+        if (e.category?.trim()) spendAreasSet.add(e.category.trim());
+      });
+      tasks.forEach(t => {
+        if (t.spendArea?.trim()) spendAreasSet.add(t.spendArea.trim());
+      });
+
+      const spendAreas = Array.from(spendAreasSet);
+      this.saveSpendAreas(spendAreas);
+
+      return { projects, tasks, expenses, partners, spendAreas };
     } catch (e) {
       console.error('Failed to parse local device storage data:', e);
-      return { projects: [], tasks: [], expenses: [], partners: DEFAULT_PARTNERS };
+      return { projects: [], tasks: [], expenses: [], partners: DEFAULT_PARTNERS, spendAreas: DEFAULT_SPEND_AREAS };
     }
   },
 
@@ -218,32 +231,56 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(partners));
   },
 
+  saveSpendAreas(spendAreas) {
+    localStorage.setItem(STORAGE_KEYS.SPEND_AREAS, JSON.stringify(spendAreas));
+  },
+
+  addSpendArea(newArea) {
+    if (!newArea || typeof newArea !== 'string') return;
+    const trimmed = newArea.trim();
+    if (!trimmed) return;
+    try {
+      const current = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPEND_AREAS) || '[]');
+      const set = new Set(Array.isArray(current) ? current : DEFAULT_SPEND_AREAS);
+      set.add(trimmed);
+      const updated = Array.from(set);
+      this.saveSpendAreas(updated);
+      return updated;
+    } catch (e) {
+      console.error('Failed to add spend area:', e);
+    }
+  },
+
   clearAllData() {
     localStorage.removeItem(STORAGE_KEYS.PROJECTS);
     localStorage.removeItem(STORAGE_KEYS.TASKS);
     localStorage.removeItem(STORAGE_KEYS.EXPENSES);
     localStorage.removeItem(STORAGE_KEYS.PARTNERS);
+    localStorage.removeItem(STORAGE_KEYS.SPEND_AREAS);
   },
 
   // Export User Database to JSON file
-  exportBackup(projects, tasks, expenses, partners = DEFAULT_PARTNERS) {
+  exportBackup(projects, tasks, expenses, partners = DEFAULT_PARTNERS, spendAreas = DEFAULT_SPEND_AREAS) {
     const payload = {
       app: "Delizoo Project & Expense Tracker",
-      version: "2.1.0",
+      version: "2.2.0",
       exportedAt: new Date().toISOString(),
       counts: {
         projects: projects.length,
         tasks: tasks.length,
         expenses: expenses.length,
-        partners: partners.length
+        partners: partners.length,
+        spendAreas: spendAreas.length
       },
       data: {
         projects,
         tasks,
         expenses,
-        partners
+        partners,
+        spendAreas
       }
     };
+
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -283,6 +320,10 @@ export const storageService = {
             };
           });
 
+          const rawExpenses = parsed.data.expenses || [];
+          const rawTasks = parsed.data.tasks || [];
+          const rawProjects = parsed.data.projects || [];
+
           // Normalize expenses on import
           const expenses = rawExpenses.map(exp => ({
             ...exp,
@@ -290,12 +331,17 @@ export const storageService = {
             payer: normalizePayerName(exp.payer, partners)
           }));
 
+          // Spend areas
+          const rawAreas = parsed.data.spendAreas || DEFAULT_SPEND_AREAS;
+          const spendAreas = Array.from(new Set([...DEFAULT_SPEND_AREAS, ...rawAreas]));
+
           this.saveProjects(projects);
           this.saveTasks(tasks);
           this.saveExpenses(expenses);
           this.savePartners(partners);
+          this.saveSpendAreas(spendAreas);
 
-          resolve({ projects, tasks, expenses, partners });
+          resolve({ projects, tasks, expenses, partners, spendAreas });
         } catch (err) {
           reject(err);
         }

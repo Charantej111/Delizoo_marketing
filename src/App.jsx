@@ -18,6 +18,7 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [partners, setPartners] = useState(DEFAULT_PARTNERS);
+  const [spendAreas, setSpendAreas] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpendAreaForExpenses, setSelectedSpendAreaForExpenses] = useState('All');
@@ -66,6 +67,7 @@ export default function App() {
     setTasks(data.tasks || []);
     setExpenses(data.expenses || []);
     setPartners(data.partners || DEFAULT_PARTNERS);
+    setSpendAreas(data.spendAreas || []);
     setIsLoaded(true);
   }, []);
 
@@ -96,6 +98,10 @@ export default function App() {
       storageService.saveExpenses(updated);
       return updated;
     });
+
+    if (expense.spendArea) {
+      handleAddSpendArea(expense.spendArea);
+    }
   }, []);
 
   const handleDeleteExpense = useCallback((id) => {
@@ -121,6 +127,10 @@ export default function App() {
       storageService.saveTasks(updated);
       return updated;
     });
+
+    if (task.spendArea) {
+      handleAddSpendArea(task.spendArea);
+    }
   }, []);
 
   const handleDeleteTask = useCallback((id) => {
@@ -138,12 +148,26 @@ export default function App() {
     storageService.savePartners(newPartners);
   }, []);
 
+  const handleAddSpendArea = useCallback((newArea) => {
+    if (!newArea || typeof newArea !== 'string') return;
+    const trimmed = newArea.trim();
+    if (!trimmed) return;
+    setSpendAreas(prev => {
+      if (prev.includes(trimmed)) return prev;
+      const updated = [...prev, trimmed];
+      storageService.saveSpendAreas(updated);
+      return updated;
+    });
+  }, []);
+
   const handleClearData = useCallback(() => {
     if (confirm('Are you sure you want to permanently clear all stored tasks and expenditures on this device?')) {
       storageService.clearAllData();
       setTasks([]);
       setExpenses([]);
       setPartners(DEFAULT_PARTNERS);
+      const data = storageService.loadAllData();
+      setSpendAreas(data.spendAreas || []);
     }
   }, []);
 
@@ -151,6 +175,7 @@ export default function App() {
     setTasks(imported.tasks || []);
     setExpenses(imported.expenses || []);
     setPartners(imported.partners || DEFAULT_PARTNERS);
+    setSpendAreas(imported.spendAreas || []);
   }, []);
 
   const handleSelectPayerForExpenses = useCallback((payerName) => {
@@ -203,6 +228,7 @@ export default function App() {
             tasks={tasks}
             expenses={expenses}
             partners={partners}
+            spendAreas={spendAreas}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
             onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
             onSelectPayerForExpenses={handleSelectPayerForExpenses}
@@ -217,6 +243,7 @@ export default function App() {
           <ExpensesTab
             expenses={expenses}
             partners={partners}
+            spendAreas={spendAreas}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
             onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
             onDeleteExpense={handleDeleteExpense}
@@ -233,6 +260,7 @@ export default function App() {
         {activeTab === 'kanban' && (
           <KanbanTab
             tasks={tasks}
+            spendAreas={spendAreas}
             onSaveTask={handleSaveTask}
             onEditTask={(t) => { setTaskToEdit(t); setIsTaskModalOpen(true); }}
             onDeleteTask={handleDeleteTask}
@@ -246,6 +274,7 @@ export default function App() {
             tasks={tasks}
             expenses={expenses}
             partners={partners}
+            spendAreas={spendAreas}
             onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
             onClearData={handleClearData}
             onImportComplete={handleImportComplete}
@@ -285,6 +314,8 @@ export default function App() {
         expenseToEdit={expenseToEdit}
         partners={partners}
         expenses={expenses}
+        spendAreas={spendAreas}
+        onAddSpendArea={handleAddSpendArea}
         onOpenPartnerModal={() => { setIsExpenseModalOpen(false); setIsPartnerModalOpen(true); }}
       />
 
@@ -293,6 +324,8 @@ export default function App() {
         onClose={() => setIsTaskModalOpen(false)}
         onSave={handleSaveTask}
         taskToEdit={taskToEdit}
+        spendAreas={spendAreas}
+        onAddSpendArea={handleAddSpendArea}
       />
 
       <PartnerModal
@@ -316,3 +349,4 @@ export default function App() {
     </div>
   );
 }
+

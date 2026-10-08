@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Plus, User, Trash2, Edit2, CheckSquare } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { CustomSelect } from './ui/CustomSelect';
-import { SPEND_AREAS } from '../services/storage';
+import { SPEND_AREAS, DEFAULT_SPEND_AREAS } from '../services/storage';
 
 export function KanbanTab({
   tasks,
+  spendAreas = DEFAULT_SPEND_AREAS,
   onSaveTask,
   onEditTask,
   onDeleteTask,
@@ -19,6 +20,15 @@ export function KanbanTab({
     { id: 'In Review', label: 'In Review', color: 'bg-zinc-500 dark:bg-zinc-400' },
     { id: 'Completed', label: 'Completed', color: 'bg-emerald-500' }
   ];
+
+  // Dynamically compute all operational streams
+  const allStreams = useMemo(() => {
+    const set = new Set(spendAreas || DEFAULT_SPEND_AREAS);
+    tasks.forEach(t => {
+      if (t.spendArea?.trim()) set.add(t.spendArea.trim());
+    });
+    return Array.from(set);
+  }, [spendAreas, tasks]);
 
   // Dynamic filter
   const filteredTasks = tasks.filter(t => {
@@ -78,13 +88,15 @@ export function KanbanTab({
               value={filterSpendArea}
               onChange={setFilterSpendArea}
               size="sm"
+              align="right"
               className="w-52"
               options={[
                 { value: 'All', label: 'All Streams' },
-                ...SPEND_AREAS.map(a => ({ value: a, label: a }))
+                ...allStreams.map(a => ({ value: a, label: a }))
               ]}
             />
           </div>
+
 
           <button
             onClick={onOpenTaskModal}
@@ -146,11 +158,11 @@ export function KanbanTab({
                           className="bg-white/80 dark:bg-zinc-900/90 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-800 rounded-xl p-3.5 shadow-2xs hover:shadow-sm transition-all space-y-2.5"
                         >
                           {/* Tags */}
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700 truncate max-w-[140px]">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700 truncate min-w-0 flex-1">
                               {area}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${
                               task.priority === 'Urgent'
                                 ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                                 : task.priority === 'High'
@@ -162,7 +174,7 @@ export function KanbanTab({
                           </div>
 
                           {/* Title */}
-                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug">
+                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug break-words">
                             {task.title}
                           </h4>
 
@@ -179,15 +191,15 @@ export function KanbanTab({
                                    <div
                                      key={idx}
                                      onClick={() => handleToggleChecklist(task, idx)}
-                                     className="flex items-start gap-1.5 text-[11px] cursor-pointer text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
+                                     className="flex items-start gap-1.5 text-[11px] cursor-pointer text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white min-w-0"
                                    >
                                      <input
                                        type="checkbox"
                                        checked={isChecked}
                                        onChange={() => {}}
-                                       className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                       className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
                                      />
-                                     <span className={isChecked ? 'line-through text-zinc-300 dark:text-zinc-600' : ''}>
+                                     <span className={`break-words min-w-0 flex-1 ${isChecked ? 'line-through text-zinc-300 dark:text-zinc-600' : ''}`}>
                                        {item}
                                      </span>
                                    </div>
@@ -197,13 +209,13 @@ export function KanbanTab({
                           )}
 
                           {/* Assignee & Due Date */}
-                          <div className="flex items-center justify-between text-[11px] pt-2 border-t border-zinc-100 dark:border-zinc-700/70 text-zinc-500 dark:text-zinc-400">
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 text-zinc-400 dark:text-zinc-500" />
-                              <span className="font-semibold text-zinc-700 dark:text-zinc-300">{task.assignee || 'Unassigned'}</span>
+                          <div className="flex items-center justify-between text-[11px] pt-2 border-t border-zinc-100 dark:border-zinc-700/70 text-zinc-500 dark:text-zinc-400 gap-2">
+                            <div className="flex items-center gap-1 min-w-0 flex-1">
+                              <User className="w-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
+                              <span className="font-semibold text-zinc-700 dark:text-zinc-300 truncate">{task.assignee || 'Unassigned'}</span>
                             </div>
                             {task.dueDate && (
-                              <span className="font-mono-num text-zinc-400 dark:text-zinc-500">
+                              <span className="font-mono-num text-zinc-400 dark:text-zinc-500 shrink-0">
                                 {task.dueDate}
                               </span>
                             )}

@@ -158,7 +158,7 @@ export function CustomDatePicker({
   }
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative ${isOpen ? 'z-40' : 'z-auto'} ${className}`} ref={containerRef}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -173,7 +173,7 @@ export function CustomDatePicker({
             : 'glass-input hover:bg-white/90 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-100'
         } ${triggerClassName}`}
       >
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-2 truncate min-w-0 flex-1">
           <CalendarIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
           <span className={`font-mono-num truncate ${value ? 'text-zinc-900 dark:text-white font-semibold' : 'text-zinc-400 dark:text-zinc-500'}`}>
             {formatDisplay(value) || placeholder}
@@ -186,7 +186,7 @@ export function CustomDatePicker({
               e.stopPropagation();
               handleClear();
             }}
-            className="p-0.5 rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-all cursor-pointer"
+            className="p-0.5 rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-all cursor-pointer shrink-0"
             title="Clear date"
           >
             <X className="w-3 h-3" />
@@ -197,10 +197,11 @@ export function CustomDatePicker({
       {/* Calendar Popover */}
       {isOpen && (
         <div
-          className={`absolute z-50 mt-1.5 w-72 rounded-2xl bg-white/98 dark:bg-zinc-900/98 backdrop-blur-2xl border border-zinc-200/90 dark:border-zinc-800 shadow-2xl p-3.5 select-none animate-in fade-in-0 zoom-in-95 duration-100 ${
+          className={`absolute z-50 mt-1.5 w-72 max-w-[calc(100vw-2rem)] rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-3.5 select-none animate-in fade-in-0 zoom-in-95 duration-100 ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
+
           {/* Header Month / Year Navigation */}
           <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
             <button

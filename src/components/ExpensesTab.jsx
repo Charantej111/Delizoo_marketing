@@ -15,13 +15,14 @@ import {
   FileCheck
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
-import { storageService, DEFAULT_PARTNERS, POPULAR_CATEGORIES, SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { storageService, DEFAULT_PARTNERS, POPULAR_CATEGORIES, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
 export function ExpensesTab({
   expenses,
   partners = DEFAULT_PARTNERS,
+  spendAreas = DEFAULT_SPEND_AREAS,
   onOpenExpenseModal,
   onEditExpense,
   onDeleteExpense,
@@ -40,6 +41,17 @@ export function ExpensesTab({
   const [filterDatePreset, setFilterDatePreset] = useState('All');
   const [filterCustomDate, setFilterCustomDate] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
+
+  // Dynamically compute all unique spend areas (defaults + customs + from expenses)
+  const allSpendAreas = useMemo(() => {
+    const set = new Set(spendAreas || DEFAULT_SPEND_AREAS);
+    expenses.forEach(e => {
+      if (e.spendArea?.trim()) set.add(e.spendArea.trim());
+      if (e.category?.trim()) set.add(e.category.trim());
+    });
+    return Array.from(set);
+  }, [spendAreas, expenses]);
+
 
   // Keep internal filter in sync with props
   React.useEffect(() => {
@@ -73,6 +85,14 @@ export function ExpensesTab({
     return ['All', ...Array.from(set)];
   }, [expenses]);
 
+  // Helper for local YYYY-MM-DD date string (prevents UTC timezone skew)
+  const getLocalDate = (d = new Date()) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // Dynamic filter
   const filteredExpenses = expenses.filter(e => {
     if (filterSpendArea !== 'All') {
@@ -85,24 +105,30 @@ export function ExpensesTab({
       if (normalizedPayer.toLowerCase() !== filterPayer.toLowerCase()) return false;
     }
 
-    if (filterCategory !== 'All' && e.category?.trim().toLowerCase() !== filterCategory.toLowerCase()) return false;
-    if (filterPaymentMode !== 'All' && !(e.paymentMode || '').includes(filterPaymentMode)) return false;
+    if (filterCategory !== 'All' && (e.category || '').trim().toLowerCase() !== filterCategory.toLowerCase()) return false;
+    
+    // Robust payment mode matching
+    if (filterPaymentMode !== 'All') {
+      const mode = (e.paymentMode || '').toLowerCase();
+      const target = filterPaymentMode.toLowerCase();
+      if (!mode.includes(target) && !target.includes(mode)) return false;
+    }
 
-    // Date / Period filter
+    // Date / Timeframe filter with local timezone safety
     if (filterDatePreset !== 'All') {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalDate(new Date());
       if (filterDatePreset === 'Today') {
         if (e.date !== todayStr) return false;
       } else if (filterDatePreset === '7d') {
-        const d = new Date(e.date);
-        const limit = new Date();
-        limit.setDate(limit.getDate() - 7);
-        if (d < limit) return false;
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() - 7);
+        const limitStr = getLocalDate(limitDate);
+        if ((e.date || '') < limitStr) return false;
       } else if (filterDatePreset === '30d') {
-        const d = new Date(e.date);
-        const limit = new Date();
-        limit.setDate(limit.getDate() - 30);
-        if (d < limit) return false;
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() - 30);
+        const limitStr = getLocalDate(limitDate);
+        if ((e.date || '') < limitStr) return false;
       } else if (filterDatePreset === 'Custom') {
         if (filterCustomDate && e.date !== filterCustomDate) return false;
       }
@@ -121,13 +147,16 @@ export function ExpensesTab({
     return true;
   });
 
-  // Sort
+  // Sort with 100% reliable datetime comparison
   const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    const dtA = `${a.date || '1970-01-01'} ${a.time || '00:00'}`;
+    const dtB = `${b.date || '1970-01-01'} ${b.time || '00:00'}`;
+
     if (sortBy === 'date-desc') {
-      return new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00'));
+      return dtB.localeCompare(dtA);
     }
     if (sortBy === 'date-asc') {
-      return new Date(a.date + ' ' + (a.time || '00:00')) - new Date(b.date + ' ' + (b.time || '00:00'));
+      return dtA.localeCompare(dtB);
     }
     if (sortBy === 'amount-desc') {
       return (Number(b.amount) || 0) - (Number(a.amount) || 0);
@@ -221,7 +250,7 @@ export function ExpensesTab({
 
       {/* Filter Controls & Quick Partner Chips */}
       {expenses.length > 0 && (
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4">
+        <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4 relative z-20">
           {/* Quick Partner Filter Chips */}
           <div className="space-y-2 pb-1 border-b border-zinc-200/60 dark:border-zinc-800">
             <div className="flex items-center justify-between">
@@ -289,7 +318,7 @@ export function ExpensesTab({
               >
                 All Spend Areas
               </button>
-              {SPEND_AREAS.map(area => {
+              {allSpendAreas.map(area => {
                 const isSelected = filterSpendArea.toLowerCase() === area.toLowerCase();
                 return (
                   <button
@@ -306,13 +335,14 @@ export function ExpensesTab({
                   </button>
                 );
               })}
+
             </div>
           </div>
 
           {/* Multi-parameter Dropdown Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
             {/* Payment Mode */}
-            <div>
+            <div className="relative z-30">
               <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PAYMENT MODE</label>
               <CustomSelect
                 value={filterPaymentMode}
@@ -329,7 +359,7 @@ export function ExpensesTab({
             </div>
 
             {/* Date / Period Filter */}
-            <div>
+            <div className="relative z-20">
               <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">TIMEFRAME</label>
               <CustomSelect
                 value={filterDatePreset}
@@ -349,12 +379,13 @@ export function ExpensesTab({
             </div>
 
             {/* Sort Filter */}
-            <div>
+            <div className="relative z-10">
               <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">SORT ORDER</label>
               <CustomSelect
                 value={sortBy}
                 onChange={setSortBy}
                 size="sm"
+                align="right"
                 options={[
                   { value: 'date-desc', label: 'Date (Newest)' },
                   { value: 'date-asc', label: 'Date (Oldest)' },
@@ -436,12 +467,12 @@ export function ExpensesTab({
                     key={exp.id}
                     className="glass-panel rounded-2xl p-4 space-y-3"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-lg font-black font-mono-num text-zinc-900 dark:text-white">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-lg font-black font-mono-num text-zinc-900 dark:text-white truncate">
                           ₹{Number(exp.amount).toLocaleString('en-IN')}
                         </div>
-                        <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                        <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5 truncate">
                           {exp.vendor || 'Direct Payee'}
                         </div>
                         <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
@@ -449,36 +480,36 @@ export function ExpensesTab({
                         </div>
                       </div>
 
-                      <span className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700">
+                      <span className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700 shrink-0 max-w-[140px] truncate">
                         {canonicalPayer}
                       </span>
                     </div>
 
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-                      <div>
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 gap-2">
+                      <div className="min-w-0 flex-1 truncate">
                         <span className="font-semibold text-zinc-800 dark:text-zinc-200">{spendArea}</span>
                         <span className="mx-1">•</span>
                         <span>{exp.paymentMode || 'UPI'}</span>
                       </div>
                       {exp.category && exp.category !== spendArea && (
-                        <span className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
+                        <span className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium shrink-0 truncate max-w-[120px]">
                           {exp.category}
                         </span>
                       )}
                     </div>
 
                     {exp.howItHelped && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 leading-relaxed">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 leading-relaxed break-words">
                         “{exp.howItHelped}”
                       </p>
                     )}
 
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {exp.proofDataUrl && (
                           <button
                             onClick={() => onViewProof(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs cursor-pointer shrink-0"
                           >
                             <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                             <span>Proof</span>
@@ -487,14 +518,14 @@ export function ExpensesTab({
                         {exp.howItHelped && (
                           <button
                             onClick={() => onViewImpact(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 cursor-pointer shrink-0"
                           >
                             Impact
                           </button>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => onEditExpense(exp)}
                           className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -518,17 +549,17 @@ export function ExpensesTab({
           {/* Desktop High-Density Table View */}
           <div className="hidden md:block glass-panel rounded-2xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[880px]">
                 <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
                   <tr>
-                    <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Amount</th>
-                    <th className="py-3 px-4">Who Paid</th>
-                    <th className="py-3 px-4">Spend Area / Stream</th>
-                    <th className="py-3 px-4">Vendor & Mode</th>
-                    <th className="py-3 px-4">Receipt</th>
-                    <th className="py-3 px-4">Business Impact</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 min-w-[110px]">Date & Time</th>
+                    <th className="py-3 px-4 min-w-[100px]">Amount</th>
+                    <th className="py-3 px-4 min-w-[130px]">Who Paid</th>
+                    <th className="py-3 px-4 min-w-[150px]">Spend Area / Stream</th>
+                    <th className="py-3 px-4 min-w-[150px]">Vendor & Mode</th>
+                    <th className="py-3 px-4 min-w-[90px]">Receipt</th>
+                    <th className="py-3 px-4 min-w-[180px]">Business Impact</th>
+                    <th className="py-3 px-4 text-right min-w-[70px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
@@ -557,7 +588,7 @@ export function ExpensesTab({
                               ₹{Number(exp.amount).toLocaleString('en-IN')}
                             </div>
                             {exp.category && exp.category !== spendArea && (
-                              <span className="inline-block mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                              <span className="inline-block mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
                                 {exp.category}
                               </span>
                             )}
@@ -565,8 +596,8 @@ export function ExpensesTab({
 
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700">
-                              <User className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
-                              <span>{canonicalPayer}</span>
+                              <User className="w-3 h-3 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{canonicalPayer}</span>
                             </span>
                           </td>
 
@@ -577,11 +608,11 @@ export function ExpensesTab({
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <div className="font-semibold text-zinc-900 dark:text-white">{exp.vendor || 'Direct Payee'}</div>
-                            <div className="font-mono-num text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                            <div className="font-semibold text-zinc-900 dark:text-white truncate max-w-[160px]">{exp.vendor || 'Direct Payee'}</div>
+                            <div className="font-mono-num text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 truncate max-w-[160px]">
                               <span>{exp.paymentMode || 'UPI'}</span>
                               {exp.utrNumber && (
-                                <span className="text-zinc-400 dark:text-zinc-500"> • {exp.utrNumber}</span>
+                                <span className="text-zinc-400 dark:text-zinc-500 truncate"> • {exp.utrNumber}</span>
                               )}
                             </div>
                           </td>
@@ -603,7 +634,7 @@ export function ExpensesTab({
                           <td className="py-3.5 px-4 max-w-xs">
                             {exp.howItHelped ? (
                               <div className="space-y-1">
-                                <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed">
+                                <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed break-words">
                                   {exp.howItHelped}
                                 </p>
                                 <button

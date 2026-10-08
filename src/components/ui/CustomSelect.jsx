@@ -88,7 +88,7 @@ export function CustomSelect({
   const isSmall = size === 'sm';
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative ${isOpen ? 'z-50' : 'z-auto'} ${className}`} ref={containerRef}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -106,7 +106,7 @@ export function CustomSelect({
             : 'glass-input hover:bg-white/90 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-100'
         } ${triggerClassName}`}
       >
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-2 truncate min-w-0 flex-1">
           {selectedOption?.icon && (
             <span className="shrink-0 text-zinc-500 dark:text-zinc-400">{selectedOption.icon}</span>
           )}
@@ -130,10 +130,11 @@ export function CustomSelect({
       {/* Popover Menu */}
       {isOpen && (
         <div
-          className={`absolute z-50 mt-1.5 w-full min-w-[200px] max-w-sm rounded-2xl bg-white/98 dark:bg-zinc-900/98 backdrop-blur-xl border border-zinc-200/90 dark:border-zinc-800 shadow-2xl py-1.5 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100 ${
+          className={`absolute z-50 mt-1.5 w-full min-w-full max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl py-1.5 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100 ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
+
           {/* Optional Search Input */}
           {(searchable || normalizedOptions.length > 7) && (
             <div className="px-2.5 pt-1 pb-2 border-b border-zinc-100 dark:border-zinc-800">
@@ -169,6 +170,7 @@ export function CustomSelect({
             ) : (
               filteredOptions.map((opt) => {
                 const isSelected = String(opt.value) === String(value);
+                const isCustomAction = String(opt.value).startsWith('__custom');
                 return (
                   <button
                     key={String(opt.value)}
@@ -177,6 +179,8 @@ export function CustomSelect({
                     className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-left text-xs transition-all ${
                       isSelected
                         ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-bold shadow-2xs'
+                        : isCustomAction
+                        ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 font-bold border-t border-zinc-100 dark:border-zinc-800/80 mt-1 pt-2'
                         : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 hover:text-zinc-900 dark:hover:text-white font-medium'
                     }`}
                   >
@@ -188,6 +192,7 @@ export function CustomSelect({
                       )}
                       <div className="truncate">
                         <span className="block truncate">{opt.label}</span>
+
                         {opt.sublabel && (
                           <span
                             className={`block text-[10px] truncate ${

@@ -11,13 +11,15 @@ import {
   FileText,
   User,
   Users,
-  Plus
+  Plus,
+  Layers,
+  Sparkles
 } from 'lucide-react';
-import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS, SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
-// 1. Expense Modal (Add / Edit) with Spend Area & Partner Integration
+// 1. Expense Modal (Add / Edit) with Custom Spend Area & Partner Integration
 export function ExpenseModal({
   isOpen,
   onClose,
@@ -25,18 +27,20 @@ export function ExpenseModal({
   expenseToEdit,
   partners = DEFAULT_PARTNERS,
   expenses = [],
+  spendAreas = DEFAULT_SPEND_AREAS,
+  onAddSpendArea,
   onOpenPartnerModal
 }) {
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
-    spendArea: SPEND_AREAS[0],
+    spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
     amount: '',
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     payer: partners[0]?.name || 'N Charan Tej',
     vendor: '',
-    category: 'Digital Ads & Growth',
+    category: 'Digital Ads & Marketing',
     paymentMode: 'UPI',
     utrNumber: '',
     howItHelped: '',
@@ -45,6 +49,8 @@ export function ExpenseModal({
     proofType: ''
   });
 
+  const [isCustomArea, setIsCustomArea] = useState(false);
+  const [customAreaInput, setCustomAreaInput] = useState('');
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -74,21 +80,30 @@ export function ExpenseModal({
   useEffect(() => {
     if (isOpen) {
       if (expenseToEdit) {
+        const area = expenseToEdit.spendArea || expenseToEdit.category || spendAreas[0] || DEFAULT_SPEND_AREAS[0];
+        const isExisting = spendAreas.includes(area);
         setFormData({
           ...expenseToEdit,
-          spendArea: expenseToEdit.spendArea || expenseToEdit.category || SPEND_AREAS[0],
+          spendArea: area,
           amount: expenseToEdit.amount !== undefined && expenseToEdit.amount !== null ? expenseToEdit.amount : '',
           payer: normalizePayerName(expenseToEdit.payer, partners) || partners[0]?.name || 'N Charan Tej'
         });
+        if (!isExisting && area) {
+          setIsCustomArea(true);
+          setCustomAreaInput(area);
+        } else {
+          setIsCustomArea(false);
+          setCustomAreaInput('');
+        }
       } else {
         setFormData({
-          spendArea: SPEND_AREAS[0],
+          spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
           amount: '',
           date: new Date().toISOString().split('T')[0],
           time: new Date().toTimeString().slice(0, 5),
           payer: partners[0]?.name || 'N Charan Tej',
           vendor: '',
-          category: 'Digital Ads & Growth',
+          category: 'Digital Ads & Marketing',
           paymentMode: 'UPI',
           utrNumber: '',
           howItHelped: '',
@@ -96,9 +111,11 @@ export function ExpenseModal({
           proofName: '',
           proofType: ''
         });
+        setIsCustomArea(false);
+        setCustomAreaInput('');
       }
     }
-  }, [isOpen, expenseToEdit, partners]);
+  }, [isOpen, expenseToEdit, partners, spendAreas]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -130,12 +147,25 @@ export function ExpenseModal({
       return;
     }
 
+    const finalSpendArea = isCustomArea
+      ? (customAreaInput.trim() || formData.spendArea || 'General Operations')
+      : (formData.spendArea || 'General Operations');
+
+    if (isCustomArea && customAreaInput.trim()) {
+      if (onAddSpendArea) {
+        onAddSpendArea(customAreaInput.trim());
+      } else {
+        storageService.addSpendArea(customAreaInput.trim());
+      }
+    }
+
     const payload = {
       ...formData,
       id: expenseToEdit ? expenseToEdit.id : 'exp-' + Date.now(),
       amount: Number(formData.amount),
       payer: formData.payer.trim(),
-      spendArea: formData.spendArea || formData.category || SPEND_AREAS[0],
+      spendArea: finalSpendArea,
+      category: formData.category || finalSpendArea,
       createdAt: expenseToEdit ? expenseToEdit.createdAt : new Date().toISOString()
     };
 
@@ -192,13 +222,58 @@ export function ExpenseModal({
             </div>
 
             <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">SPEND AREA / STREAM *</label>
-              <CustomSelect
-                value={formData.spendArea}
-                onChange={(val) => setFormData({ ...formData, spendArea: val, category: val })}
-                options={SPEND_AREAS.map(area => ({ value: area, label: area }))}
-                placeholder="Select operational spend area..."
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-bold text-zinc-800 dark:text-zinc-200">SPEND AREA / STREAM *</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomArea(!isCustomArea);
+                    if (!isCustomArea && !customAreaInput) {
+                      setCustomAreaInput('');
+                    }
+                  }}
+                  className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  {isCustomArea ? 'Choose existing' : '+ Custom Stream'}
+                </button>
+              </div>
+
+              {isCustomArea ? (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={customAreaInput}
+                    onChange={(e) => {
+                      setCustomAreaInput(e.target.value);
+                      setFormData(prev => ({ ...prev, spendArea: e.target.value, category: e.target.value }));
+                    }}
+                    placeholder="Type custom spend area (e.g. Influencer Marketing, Rent)"
+                    className="w-full px-3 py-2 glass-input rounded-xl font-bold text-zinc-900 dark:text-white outline-none"
+                  />
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    Will be added to your spend channels list automatically.
+                  </p>
+                </div>
+              ) : (
+                <CustomSelect
+                  value={formData.spendArea}
+                  onChange={(val) => {
+                    if (val === '__custom__') {
+                      setIsCustomArea(true);
+                      setCustomAreaInput('');
+                    } else {
+                      setFormData({ ...formData, spendArea: val, category: val });
+                    }
+                  }}
+                  options={[
+                    ...spendAreas.map(area => ({ value: area, label: area })),
+                    { value: '__custom__', label: '+ Add Custom Spend Area...' }
+                  ]}
+                  placeholder="Select operational spend area..."
+                />
+              )}
             </div>
           </div>
 
@@ -215,7 +290,7 @@ export function ExpenseModal({
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Users className="w-3 h-3" />
-                  <span>Manage 6 Partners & Capital</span>
+                  <span>Manage Partners & Capital</span>
                 </button>
               )}
             </div>
@@ -243,16 +318,16 @@ export function ExpenseModal({
                         {p.name}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono-num">
-                      <span className={isSelected ? 'text-zinc-300 dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400'}>
-                        Pool: ₹{p.investment.toLocaleString('en-IN')}
+                    <div className="flex items-center justify-between text-[10px] font-mono-num gap-1">
+                      <span className={`truncate min-w-0 flex-1 ${isSelected ? 'text-zinc-300 dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                        ₹{p.investment.toLocaleString('en-IN')}
                       </span>
-                      <span className={`font-bold ${
+                      <span className={`font-bold shrink-0 ${
                         rem >= 0
                           ? isSelected ? 'text-emerald-300 dark:text-zinc-950 font-black' : 'text-emerald-600 dark:text-emerald-400'
                           : isSelected ? 'text-rose-300 dark:text-rose-950' : 'text-rose-600 dark:text-rose-400'
                       }`}>
-                        ₹{rem.toLocaleString('en-IN')} rem
+                        ₹{rem.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </button>
@@ -274,7 +349,7 @@ export function ExpenseModal({
 
             {/* Live deduction impact note */}
             {currentPayerStat && (
-              <div className={`p-2 rounded-xl text-[11px] font-medium flex items-center justify-between ${
+              <div className={`p-2.5 rounded-xl text-[11px] font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-1 ${
                 payerRemainingAfterThis >= 0
                   ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20'
                   : 'bg-rose-500/10 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/20'
@@ -292,7 +367,7 @@ export function ExpenseModal({
           {/* Quick Category Chips */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200">SPECIFIC ITEM DESCRIPTION / CATEGORY *</label>
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">ITEM DETAIL / SUB-CATEGORY *</label>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -307,7 +382,6 @@ export function ExpenseModal({
                       : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
                   }`}
                 >
-                  <span>{cat.icon}</span>
                   <span>{cat.label}</span>
                 </button>
               ))}
@@ -475,13 +549,20 @@ export function ExpenseModal({
   );
 }
 
-// 2. Task Modal (Add / Edit) with Spend Area integration
-export function TaskModal({ isOpen, onClose, onSave, taskToEdit }) {
+// 2. Task Modal (Add / Edit) with Custom Operational Stream / Spend Area support
+export function TaskModal({
+  isOpen,
+  onClose,
+  onSave,
+  taskToEdit,
+  spendAreas = DEFAULT_SPEND_AREAS,
+  onAddSpendArea
+}) {
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
     title: '',
-    spendArea: SPEND_AREAS[0],
+    spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
     priority: 'High',
     assignee: '',
     dueDate: '',
@@ -489,35 +570,61 @@ export function TaskModal({ isOpen, onClose, onSave, taskToEdit }) {
     checklistText: ''
   });
 
+  const [isCustomArea, setIsCustomArea] = useState(false);
+  const [customAreaInput, setCustomAreaInput] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       if (taskToEdit) {
+        const area = taskToEdit.spendArea || spendAreas[0] || DEFAULT_SPEND_AREAS[0];
+        const isExisting = spendAreas.includes(area);
         setFormData({
           title: taskToEdit.title || '',
-          spendArea: taskToEdit.spendArea || SPEND_AREAS[0],
+          spendArea: area,
           priority: taskToEdit.priority || 'High',
           assignee: taskToEdit.assignee || '',
           dueDate: taskToEdit.dueDate || '',
           status: taskToEdit.status || 'To Do',
           checklistText: Array.isArray(taskToEdit.checklist) ? taskToEdit.checklist.join('\n') : ''
         });
+        if (!isExisting && area) {
+          setIsCustomArea(true);
+          setCustomAreaInput(area);
+        } else {
+          setIsCustomArea(false);
+          setCustomAreaInput('');
+        }
       } else {
         setFormData({
           title: '',
-          spendArea: SPEND_AREAS[0],
+          spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
           priority: 'High',
           assignee: '',
           dueDate: '',
           status: 'To Do',
           checklistText: ''
         });
+        setIsCustomArea(false);
+        setCustomAreaInput('');
       }
     }
-  }, [isOpen, taskToEdit]);
+  }, [isOpen, taskToEdit, spendAreas]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return alert('Please enter task title');
+
+    const finalSpendArea = isCustomArea
+      ? (customAreaInput.trim() || formData.spendArea || 'General Operations')
+      : (formData.spendArea || 'General Operations');
+
+    if (isCustomArea && customAreaInput.trim()) {
+      if (onAddSpendArea) {
+        onAddSpendArea(customAreaInput.trim());
+      } else {
+        storageService.addSpendArea(customAreaInput.trim());
+      }
+    }
 
     const checklist = formData.checklistText
       ? formData.checklistText.split('\n').map(s => s.trim()).filter(Boolean)
@@ -527,7 +634,7 @@ export function TaskModal({ isOpen, onClose, onSave, taskToEdit }) {
       ...formData,
       id: taskToEdit ? taskToEdit.id : 'task-' + Date.now(),
       title: formData.title.trim(),
-      spendArea: formData.spendArea || SPEND_AREAS[0],
+      spendArea: finalSpendArea,
       priority: formData.priority || 'High',
       assignee: (formData.assignee || '').trim(),
       dueDate: formData.dueDate || '',
@@ -567,13 +674,45 @@ export function TaskModal({ isOpen, onClose, onSave, taskToEdit }) {
           </div>
 
           <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">OPERATIONAL STREAM / SPEND AREA</label>
-            <CustomSelect
-              value={formData.spendArea}
-              onChange={(val) => setFormData({ ...formData, spendArea: val })}
-              options={SPEND_AREAS.map(a => ({ value: a, label: a }))}
-              placeholder="Select operational stream..."
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">OPERATIONAL STREAM / SPEND AREA</label>
+              <button
+                type="button"
+                onClick={() => setIsCustomArea(!isCustomArea)}
+                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              >
+                {isCustomArea ? 'Choose existing' : '+ Custom Stream'}
+              </button>
+            </div>
+
+            {isCustomArea ? (
+              <input
+                type="text"
+                required
+                autoFocus
+                value={customAreaInput}
+                onChange={(e) => setCustomAreaInput(e.target.value)}
+                placeholder="Type custom stream name"
+                className="w-full px-3 py-2 glass-input rounded-xl font-bold text-zinc-900 dark:text-white outline-none"
+              />
+            ) : (
+              <CustomSelect
+                value={formData.spendArea}
+                onChange={(val) => {
+                  if (val === '__custom__') {
+                    setIsCustomArea(true);
+                    setCustomAreaInput('');
+                  } else {
+                    setFormData({ ...formData, spendArea: val });
+                  }
+                }}
+                options={[
+                  ...spendAreas.map(a => ({ value: a, label: a })),
+                  { value: '__custom__', label: '+ Add Custom Stream...' }
+                ]}
+                placeholder="Select operational stream..."
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -760,28 +899,28 @@ export function ImpactModal({ isOpen, onClose, expense }) {
             <h4 className="font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-[11px] mb-2">
               Outcome Summary:
             </h4>
-            <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed leading-normal">
+            <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed">
               {expense.howItHelped || 'No outcome notes recorded.'}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 pt-1">
-            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">WHO FUNDED THIS</span>
-              <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{expense.payer}</span>
+            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block truncate">WHO FUNDED THIS</span>
+              <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 truncate block">{expense.payer}</span>
             </div>
-            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">VENDOR / PAYEE</span>
+            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block truncate">VENDOR / PAYEE</span>
               <span className="text-sm font-bold text-zinc-900 dark:text-white truncate block">{expense.vendor || 'Direct'}</span>
             </div>
-            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">DATE OF SPEND</span>
-              <span className="text-xs font-bold font-mono-num text-zinc-800 dark:text-zinc-200">
+            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block truncate">DATE OF SPEND</span>
+              <span className="text-xs font-bold font-mono-num text-zinc-800 dark:text-zinc-200 truncate block">
                 {expense.date} {expense.time || ''}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block">SPEND AREA</span>
+            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block truncate">SPEND AREA</span>
               <span className="text-xs font-bold text-zinc-900 dark:text-white truncate block">
                 {expense.spendArea || expense.category || 'General'}
               </span>
@@ -848,7 +987,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
   };
 
   const handleResetDefaults = () => {
-    if (confirm('Reset partner list to default 6 core partners?')) {
+    if (confirm('Reset partner list to default founding partners?')) {
       setPartnerList(DEFAULT_PARTNERS);
     }
   };
@@ -984,7 +1123,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
               onClick={handleResetDefaults}
               className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline cursor-pointer"
             >
-              Reset to 6 Founders
+              Reset to Default Founders
             </button>
           </div>
 

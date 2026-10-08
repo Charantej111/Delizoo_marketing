@@ -20,7 +20,7 @@ export function Navbar({
   setSearchQuery,
   expenseCount,
   taskCount,
-  partnerCount = 6,
+  partnerCount = 5,
   theme = 'light',
   toggleTheme
 }) {
@@ -73,11 +73,11 @@ export function Navbar({
           </div>
 
           {/* Action Buttons & Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Mobile Search Toggle */}
             <button
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all shrink-0 cursor-pointer"
               title="Search"
             >
               <Search className="w-4 h-4" />
@@ -88,7 +88,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label="Toggle Theme"
               >
@@ -104,10 +104,10 @@ export function Navbar({
             {onOpenPartnerModal && (
               <button
                 onClick={onOpenPartnerModal}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer shadow-2xs"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer shadow-2xs shrink-0"
                 title="Manage Founders Capital Pool"
               >
-                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Founders ({partnerCount})</span>
               </button>
             )}
@@ -115,10 +115,10 @@ export function Navbar({
             {/* Log Expense Button */}
             <button
               onClick={onOpenExpenseModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Record Expense</span>
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span><span className="hidden sm:inline">Record </span>Expense</span>
             </button>
           </div>
         </div>

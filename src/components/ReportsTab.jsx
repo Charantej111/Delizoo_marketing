@@ -14,7 +14,7 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react';
-import { storageService, DEFAULT_PARTNERS, SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { storageService, DEFAULT_PARTNERS, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
@@ -22,6 +22,7 @@ export function ReportsTab({
   tasks = [],
   expenses = [],
   partners = DEFAULT_PARTNERS,
+  spendAreas = DEFAULT_SPEND_AREAS,
   onOpenPartnerModal,
   onClearData,
   onImportComplete
@@ -68,10 +69,16 @@ export function ReportsTab({
     return filteredExpenses.filter(e => !!e.proofDataUrl).length;
   }, [filteredExpenses]);
 
-  // Spend Area Breakdown Table
+  // Spend Area Breakdown Table (incorporates all custom and default spend areas)
   const spendAreaBreakdown = useMemo(() => {
     const areaMap = {};
-    SPEND_AREAS.forEach(area => {
+    const allAreasSet = new Set(spendAreas || DEFAULT_SPEND_AREAS);
+    filteredExpenses.forEach(e => {
+      if (e.spendArea?.trim()) allAreasSet.add(e.spendArea.trim());
+      if (e.category?.trim()) allAreasSet.add(e.category.trim());
+    });
+
+    allAreasSet.forEach(area => {
       areaMap[area] = { name: area, spent: 0, count: 0, proofs: 0 };
     });
 
@@ -84,6 +91,7 @@ export function ReportsTab({
       areaMap[area].count += 1;
       if (e.proofDataUrl) areaMap[area].proofs += 1;
     });
+
 
     return Object.values(areaMap)
       .filter(item => item.spent > 0 || item.count > 0)
@@ -168,52 +176,52 @@ export function ReportsTab({
       </div>
 
       {/* Financial KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 no-print">
-        <div className="glass-panel rounded-2xl p-4 space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-            Total Partner Capital Pool
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 no-print">
+        <div className="glass-panel rounded-2xl p-4 space-y-1 min-w-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 truncate">
+            <Coins className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
+            <span className="truncate">Total Partner Capital Pool</span>
           </span>
-          <p className="text-xl sm:text-2xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight">
+          <p className="text-xl sm:text-2xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight truncate">
             ₹{totalCommittedCapital.toLocaleString('en-IN')}
           </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{partners.length} Founding Partners</p>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{partners.length} Founding Partners</p>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5" />
-            Real Expenditure
+        <div className="glass-panel rounded-2xl p-4 space-y-1 min-w-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 truncate">
+            <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Real Expenditure</span>
           </span>
-          <p className="text-xl sm:text-2xl font-black font-mono-num text-emerald-600 dark:text-emerald-400 tracking-tight">
+          <p className="text-xl sm:text-2xl font-black font-mono-num text-emerald-600 dark:text-emerald-400 tracking-tight truncate">
             ₹{totalSpent.toLocaleString('en-IN')}
           </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">In selected audit period</p>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">In selected audit period</p>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <div className="glass-panel rounded-2xl p-4 space-y-1 min-w-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate block">
             Net Available Balance
           </span>
-          <p className={`text-xl sm:text-2xl font-black font-mono-num tracking-tight ${
+          <p className={`text-xl sm:text-2xl font-black font-mono-num tracking-tight truncate ${
             (totalCommittedCapital - totalSpent) >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
           }`}>
             ₹{(totalCommittedCapital - totalSpent).toLocaleString('en-IN')}
           </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">
             {(totalCommittedCapital - totalSpent) >= 0 ? 'Available capital' : 'Exceeded capital allocation'}
           </p>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            Verified Receipts
+        <div className="glass-panel rounded-2xl p-4 space-y-1 min-w-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 truncate">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="truncate">Verified Receipts</span>
           </span>
-          <p className="text-xl sm:text-2xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight">
+          <p className="text-xl sm:text-2xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight truncate">
             {totalProofsCount} <span className="text-xs font-normal text-zinc-400 dark:text-zinc-500">/ {filteredExpenses.length}</span>
           </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">
             {filteredExpenses.length > 0 ? `${Math.round((totalProofsCount / filteredExpenses.length) * 100)}% audit compliance` : 'No transactions'}
           </p>
         </div>
@@ -225,7 +233,7 @@ export function ReportsTab({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Founders & Partners Capital Audit Ledger ("Who Paid")</span>
               </h3>
             </div>
@@ -237,7 +245,7 @@ export function ReportsTab({
           {onOpenPartnerModal && (
             <button
               onClick={onOpenPartnerModal}
-              className="self-start sm:self-center px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer no-print"
+              className="self-start sm:self-center px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700 bg-white/90 dark:bg-zinc-800/90 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer no-print shrink-0"
             >
               <span>Edit Capital Pool</span>
               <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
@@ -246,41 +254,41 @@ export function ReportsTab({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[820px]">
             <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-3 px-4">Partner</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Committed Capital</th>
-                <th className="py-3 px-4">Total Paid Out</th>
-                <th className="py-3 px-4">Available Balance</th>
-                <th className="py-3 px-4">Share of Spend</th>
-                <th className="py-3 px-4">Spend Breakdown</th>
+                <th className="py-3 px-4 min-w-[140px]">Partner</th>
+                <th className="py-3 px-4 min-w-[110px]">Role</th>
+                <th className="py-3 px-4 min-w-[120px]">Committed Capital</th>
+                <th className="py-3 px-4 min-w-[120px]">Total Paid Out</th>
+                <th className="py-3 px-4 min-w-[120px]">Available Balance</th>
+                <th className="py-3 px-4 min-w-[120px]">Share of Spend</th>
+                <th className="py-3 px-4 min-w-[180px]">Spend Breakdown</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
               {partnerAuditLedger.map(p => (
                 <tr key={p.id || p.name} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white">
+                  <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white whitespace-nowrap">
                     <span className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold border border-zinc-200/80 dark:border-zinc-700">
                       {p.name}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-400 font-medium">
+                  <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-400 font-medium whitespace-nowrap">
                     {p.role}
                   </td>
-                  <td className="py-3.5 px-4 font-mono-num text-zinc-900 dark:text-white font-bold">
+                  <td className="py-3.5 px-4 font-mono-num text-zinc-900 dark:text-white font-bold whitespace-nowrap">
                     ₹{p.investment.toLocaleString('en-IN')}
                   </td>
-                  <td className="py-3.5 px-4 font-mono-num font-black text-sm text-emerald-600 dark:text-emerald-400">
+                  <td className="py-3.5 px-4 font-mono-num font-black text-sm text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                     ₹{p.spent.toLocaleString('en-IN')}
                   </td>
-                  <td className={`py-3.5 px-4 font-mono-num font-bold ${
+                  <td className={`py-3.5 px-4 font-mono-num font-bold whitespace-nowrap ${
                     p.remaining >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
                   }`}>
                     {p.remaining >= 0 ? `₹${p.remaining.toLocaleString('en-IN')}` : `-₹${Math.abs(p.remaining).toLocaleString('en-IN')}`}
                   </td>
-                  <td className="py-3.5 px-4">
+                  <td className="py-3.5 px-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="w-14 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                         <div
@@ -306,7 +314,7 @@ export function ReportsTab({
         <div className="p-4 border-b border-zinc-200/70 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-50/90 dark:bg-zinc-900/90">
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+              <Layers className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
               <span>Spend Area & Channel Audit Breakdown</span>
             </h3>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -326,6 +334,7 @@ export function ReportsTab({
                 }
               }}
               size="sm"
+              align="right"
               className="w-44"
               options={[
                 { value: 'All', label: 'All Time' },
@@ -340,7 +349,7 @@ export function ReportsTab({
         {periodFilter === 'Custom' && (
           <div className="px-4 py-2.5 bg-zinc-100/70 dark:bg-zinc-900/60 border-b border-zinc-200/60 dark:border-zinc-800 flex flex-wrap items-center gap-3 no-print">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">From:</span>
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 shrink-0">From:</span>
               <div className="w-40">
                 <CustomDatePicker
                   value={customStartDate}
@@ -351,7 +360,7 @@ export function ReportsTab({
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">To:</span>
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 shrink-0">To:</span>
               <div className="w-40">
                 <CustomDatePicker
                   value={customEndDate}
@@ -365,7 +374,7 @@ export function ReportsTab({
               <button
                 type="button"
                 onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
-                className="text-xs text-rose-500 hover:text-rose-400 font-semibold cursor-pointer"
+                className="text-xs text-rose-500 hover:text-rose-400 font-semibold cursor-pointer shrink-0"
               >
                 Reset range
               </button>
@@ -374,14 +383,14 @@ export function ReportsTab({
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-3 px-4">Spend Area / Channel</th>
-                <th className="py-3 px-4">Total Amount Spent</th>
-                <th className="py-3 px-4">Transactions</th>
-                <th className="py-3 px-4">Verified Receipts</th>
-                <th className="py-3 px-4">Share of Total Spend</th>
+                <th className="py-3 px-4 min-w-[180px]">Spend Area / Channel</th>
+                <th className="py-3 px-4 min-w-[140px]">Total Amount Spent</th>
+                <th className="py-3 px-4 min-w-[110px]">Transactions</th>
+                <th className="py-3 px-4 min-w-[130px]">Verified Receipts</th>
+                <th className="py-3 px-4 min-w-[140px]">Share of Total Spend</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
@@ -396,17 +405,17 @@ export function ReportsTab({
                   const share = totalSpent > 0 ? Math.round((area.spent / totalSpent) * 100) : 0;
                   return (
                     <tr key={area.name} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white">{area.name}</td>
-                      <td className="py-3.5 px-4 font-mono-num font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                      <td className="py-3.5 px-4 font-bold text-zinc-900 dark:text-white whitespace-nowrap">{area.name}</td>
+                      <td className="py-3.5 px-4 font-mono-num font-bold text-emerald-600 dark:text-emerald-400 text-sm whitespace-nowrap">
                         ₹{area.spent.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-4 font-mono-num text-zinc-700 dark:text-zinc-300">
+                      <td className="py-3.5 px-4 font-mono-num text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
                         {area.count} transactions
                       </td>
-                      <td className="py-3.5 px-4 font-mono-num text-zinc-500 dark:text-zinc-400">
+                      <td className="py-3.5 px-4 font-mono-num text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                         {area.proofs} of {area.count} verified
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className="w-20 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                             <div

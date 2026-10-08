@@ -9,15 +9,17 @@ import {
   PieChart,
   Users
 } from 'lucide-react';
-import { DEFAULT_PARTNERS, SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { DEFAULT_PARTNERS, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 
 export function OverviewTab({
   tasks = [],
   expenses = [],
   partners = DEFAULT_PARTNERS,
+  spendAreas = DEFAULT_SPEND_AREAS,
   onOpenExpenseModal,
   onOpenPartnerModal,
   onSelectPayerForExpenses,
+  onSelectSpendAreaForExpenses,
   onViewProof,
   onViewImpact,
   setActiveTab
@@ -49,7 +51,7 @@ export function OverviewTab({
       // Group by spend area for this partner
       const catMap = {};
       pExpenses.forEach(e => {
-        const cat = e.category?.trim() || 'General';
+        const cat = e.spendArea || e.category?.trim() || 'General';
         catMap[cat] = (catMap[cat] || 0) + (Number(e.amount) || 0);
       });
       const topCategories = Object.entries(catMap)
@@ -71,7 +73,7 @@ export function OverviewTab({
   const spendAreaStats = useMemo(() => {
     const map = {};
     expenses.forEach(e => {
-      const area = e.category?.trim() || 'General';
+      const area = e.spendArea || e.category?.trim() || 'General Operations';
       if (!map[area]) map[area] = { amount: 0, count: 0 };
       map[area].amount += Number(e.amount) || 0;
       map[area].count += 1;
@@ -86,6 +88,7 @@ export function OverviewTab({
       }))
       .sort((a, b) => b.amount - a.amount);
   }, [expenses, totalSpent]);
+
 
   // Recent 5 expenses
   const recentExpenses = useMemo(() => {
@@ -204,15 +207,15 @@ export function OverviewTab({
               className="p-4 rounded-xl bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 space-y-3 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
             >
               {/* Partner Name & Role */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate">
                     {p.name}
                   </h3>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{p.role}</p>
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">{p.role}</p>
                 </div>
 
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${
                   p.remaining >= 0
                     ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
                     : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
@@ -222,26 +225,26 @@ export function OverviewTab({
               </div>
 
               {/* Financial Metrics */}
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block">Committed</span>
-                  <span className="text-xs font-bold font-mono-num text-zinc-900 dark:text-white">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 min-w-0">
+                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Committed</span>
+                  <span className="text-[11px] sm:text-xs font-bold font-mono-num text-zinc-900 dark:text-white block truncate">
                     ₹{p.investment.toLocaleString('en-IN')}
                   </span>
                 </div>
-                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block">Spent</span>
-                  <span className="text-xs font-bold font-mono-num text-zinc-900 dark:text-zinc-300">
+                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 min-w-0">
+                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Spent</span>
+                  <span className="text-[11px] sm:text-xs font-bold font-mono-num text-zinc-900 dark:text-zinc-300 block truncate">
                     ₹{p.spent.toLocaleString('en-IN')}
                   </span>
                 </div>
-                <div className={`p-2 rounded-lg ${
+                <div className={`p-2 rounded-lg min-w-0 ${
                   p.remaining >= 0
                     ? 'bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
                     : 'bg-rose-50/70 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
                 }`}>
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block">Available</span>
-                  <span className="text-xs font-bold font-mono-num">
+                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Available</span>
+                  <span className="text-[11px] sm:text-xs font-bold font-mono-num block truncate">
                     ₹{p.remaining.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -265,14 +268,14 @@ export function OverviewTab({
 
               {/* Top Categories Funded */}
               {p.topCategories.length > 0 ? (
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
-                  <span className="text-zinc-500 dark:text-zinc-400 truncate max-w-[180px]">
+                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs gap-2">
+                  <span className="text-zinc-500 dark:text-zinc-400 truncate min-w-0 flex-1">
                     {p.topCategories.map(([cat, amt]) => `${cat}: ₹${amt.toLocaleString('en-IN')}`).join(', ')}
                   </span>
                   {onSelectPayerForExpenses && (
                     <button
                       onClick={() => onSelectPayerForExpenses(p.name)}
-                      className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 cursor-pointer"
+                      className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 cursor-pointer text-xs"
                     >
                       View Bills →
                     </button>
@@ -283,6 +286,7 @@ export function OverviewTab({
                   No expenditures recorded yet.
                 </div>
               )}
+
             </div>
           ))}
         </div>
@@ -310,10 +314,19 @@ export function OverviewTab({
           ) : (
             <div className="space-y-3 pt-1">
               {spendAreaStats.map(c => (
-                <div key={c.area} className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">{c.area}</span>
-                    <div className="font-mono-num space-x-1.5">
+                <div
+                  key={c.area}
+                  onClick={() => onSelectSpendAreaForExpenses && onSelectSpendAreaForExpenses(c.area)}
+                  className={`space-y-1.5 p-2 rounded-xl transition-all ${
+                    onSelectSpendAreaForExpenses
+                      ? 'hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 cursor-pointer'
+                      : ''
+                  }`}
+                  title={onSelectSpendAreaForExpenses ? `Click to filter expenses for ${c.area}` : ''}
+                >
+                  <div className="flex justify-between items-center text-xs gap-2">
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate min-w-0 flex-1">{c.area}</span>
+                    <div className="font-mono-num space-x-1.5 shrink-0">
                       <span className="font-bold text-zinc-900 dark:text-white">₹{c.amount.toLocaleString('en-IN')}</span>
                       <span className="text-zinc-400 dark:text-zinc-500">({c.pct}%)</span>
                     </div>
@@ -326,6 +339,7 @@ export function OverviewTab({
                   </div>
                 </div>
               ))}
+
             </div>
           )}
         </div>
@@ -340,7 +354,7 @@ export function OverviewTab({
             {expenses.length > 0 && (
               <button
                 onClick={() => setActiveTab('expenses')}
-                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline cursor-pointer"
+                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline cursor-pointer shrink-0"
               >
                 <span>All ({expenses.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -362,16 +376,16 @@ export function OverviewTab({
                     key={exp.id}
                     className="py-3 flex items-center justify-between gap-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 px-2 rounded-xl transition-colors"
                   >
-                    <div className="truncate">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white truncate">
+                    <div className="truncate min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white truncate min-w-0 flex-1">
                           {exp.vendor || 'Direct Payee'}
                         </span>
                         <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num shrink-0">
                           {exp.date}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate min-w-0">
                         <span className="font-semibold text-zinc-700 dark:text-zinc-300">Paid by: {normalizedPayer}</span>
                         {' • '}
                         <span>{exp.category || 'General'}</span>
