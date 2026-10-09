@@ -7,10 +7,16 @@ export const FullScreenSignup = ({
   initialMode = 'signin',
   onLoginSuccess,
   onBackToApp,
-  partners = DEFAULT_PARTNERS
+  partners = DEFAULT_PARTNERS,
+  currentUser = null
 }) => {
   const [mode, setMode] = useState(initialMode); // 'signin' | 'create'
   const [step, setStep] = useState('email'); // 'email' | 'otp'
+
+  // Sync mode whenever initialMode prop updates
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -137,7 +143,7 @@ export const FullScreenSignup = ({
               <img src="/logo.png" alt="Delizoo Logo" className="w-7 h-7 rounded-lg object-contain" />
               <span className="text-sm font-bold tracking-tight text-white">Delizoo OS</span>
             </div>
-            {onBackToApp && (
+            {onBackToApp && currentUser && (
               <button
                 type="button"
                 onClick={onBackToApp}

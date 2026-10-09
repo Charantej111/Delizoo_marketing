@@ -45,9 +45,12 @@ const TAB_PAGE_TITLES = {
 
 function getTabFromPath(pathname = '/') {
   const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  const user = authService.getCurrentUser();
+  if (!user) {
+    if (clean === '/signup') return 'signup';
+    return 'login';
+  }
   if (clean === '/' || clean === '/login' || clean === '/signin') {
-    const user = authService.getCurrentUser();
-    if (!user) return 'login';
     return 'overview';
   }
   return ROUTE_MAP[clean] || 'overview';
@@ -191,6 +194,8 @@ export default function App() {
   // Tour / Guide State
   const [isTourOpen, setIsTourOpen] = useState(() => {
     if (typeof window !== 'undefined') {
+      const user = authService.getCurrentUser();
+      if (!user) return false;
       const path = window.location.pathname.toLowerCase();
       const params = new URLSearchParams(window.location.search);
       return path.includes('guide') || path.includes('tour') || params.get('tour') === 'true';
@@ -228,7 +233,8 @@ export default function App() {
   const handleLogout = useCallback(() => {
     authService.logout();
     setCurrentUser(null);
-  }, []);
+    setActiveTab('login');
+  }, [setActiveTab]);
 
   const handleOpenPartnerModal = useCallback(() => {
     if (currentUser && !currentUser.isLead) {
@@ -440,8 +446,8 @@ export default function App() {
     );
   }
 
-  // Full-Screen Signup & Login View
-  if (activeTab === 'signup' || activeTab === 'login' || isLoginModalOpen) {
+  // Private Founder OS: Guard all routes behind authentication
+  if (!currentUser || activeTab === 'signup' || activeTab === 'login' || isLoginModalOpen) {
     return (
       <FullScreenAuth
         initialMode={activeTab === 'login' ? 'signin' : 'create'}
@@ -450,10 +456,11 @@ export default function App() {
           setActiveTab('overview');
           setIsLoginModalOpen(false);
         }}
-        onBackToApp={() => {
+        onBackToApp={currentUser ? () => {
           setActiveTab('overview');
           setIsLoginModalOpen(false);
-        }}
+        } : null}
+        currentUser={currentUser}
         partners={partners}
       />
     );
