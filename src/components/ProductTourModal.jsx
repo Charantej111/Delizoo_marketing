@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  ShieldCheck,
-  TrendingUp,
-  Receipt,
-  CheckSquare,
-  Compass,
-  Building2,
-  Users,
-  Check,
-  Mail,
-  FileSpreadsheet,
-  Layers,
-  ChevronRight
-} from 'lucide-react';
+import { Sun, X, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
-export function ProductTourModal({ isOpen, onClose, onExploreLedger, onExploreKanban }) {
+export function ProductTourModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -26,215 +9,151 @@ export function ProductTourModal({ isOpen, onClose, onExploreLedger, onExploreKa
   const steps = [
     {
       id: 'purpose',
-      badge: 'Platform Purpose',
-      badgeColor: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60',
-      title: 'Welcome to Delizoo OS',
-      subtitle: 'The Executive Command Center for Kakinada Launch Operations',
-      description: 'Delizoo OS is a private, real-time operating system engineered exclusively for the 6 co-founders of Delizoo. It centralizes all pre-launch financial governance, capital allocation, vendor disbursements, and marketing execution in one unified system.',
-      visual: (
-        <div className="p-4 rounded-xl bg-zinc-900 text-white border border-zinc-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Delizoo Logo" className="w-5 h-5 rounded object-contain" />
-              <span className="text-xs font-bold tracking-tight">Delizoo OS</span>
+      tabLabel: '01 Overview',
+      stepNumber: '01',
+      leftHeadline: 'One shared space for all 6 founders.',
+      leftSubtext: 'Delizoo Kakinada Launch Operations',
+      title: 'What is Delizoo OS?',
+      subtitle: 'A private dashboard to manage launch money and work together.',
+      content: (
+        <div className="space-y-3.5 text-sm text-zinc-600 leading-relaxed">
+          <p>
+            Delizoo OS keeps all 6 co-founders aligned on one screen during our Kakinada launch.
+          </p>
+
+          <div className="space-y-2">
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block text-xs mb-0.5">Track Capital & Spends</span>
+              <p className="text-xs text-zinc-500 leading-normal">
+                Log every rupee spent with UTR numbers and receipt proofs. No missing UPI screenshots.
+              </p>
             </div>
-            <span className="text-[10px] font-mono-num text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live  Synced
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono-num">
-            <div className="p-2 rounded-lg bg-zinc-800/80 border border-zinc-700/60">
-              <div className="text-[10px] text-zinc-400">Total Pool</div>
-              <div className="text-xs font-bold text-white mt-0.5">₹1,60,000</div>
+
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block text-xs mb-0.5">Stay on Track</span>
+              <p className="text-xs text-zinc-500 leading-normal">
+                Manage launch deliverables on the Kanban board and assign tasks with due dates.
+              </p>
             </div>
-            <div className="p-2 rounded-lg bg-zinc-800/80 border border-zinc-700/60">
-              <div className="text-[10px] text-zinc-400">Co-Founders</div>
-              <div className="text-xs font-bold text-emerald-400 mt-0.5">6 Partners</div>
-            </div>
-            <div className="p-2 rounded-lg bg-zinc-800/80 border border-zinc-700/60">
-              <div className="text-[10px] text-zinc-400">Market</div>
-              <div className="text-xs font-bold text-blue-400 mt-0.5">Kakinada</div>
+
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block text-xs mb-0.5">Private to Founders</span>
+              <p className="text-xs text-zinc-500 leading-normal">
+                Only the 6 registered founder emails can sign in with OTP verification.
+              </p>
             </div>
           </div>
         </div>
       ),
-      highlights: [
-        '100% Real Supabase Cloud Data — Zero fake or mock figures',
-        'Private OS Gatekeeper: Only the 6 authorized co-founders can sign in',
-        'Multi-device synchronization across mobile and desktop devices'
-      ]
+      buttonLabel: 'Next: Capital Pool'
     },
     {
       id: 'capital',
-      badge: 'Financial Governance',
-      badgeColor: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60',
-      title: 'Capital Pool & Founder Allocations',
-      subtitle: 'Committed Capital Governance Across 6 Partners',
-      description: 'The platform tracks the committed capital pool of ₹1,60,000. Every time an expense is logged, the individual partner’s disbursed amount and remaining balance adjust dynamically.',
-      visual: (
-        <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 space-y-2 text-xs">
-          <div className="flex items-center justify-between font-semibold text-zinc-900 dark:text-white pb-1 border-b border-zinc-200 dark:border-zinc-700">
-            <span>Founder</span>
-            <span>Allocated Capital</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono-num text-zinc-600 dark:text-zinc-300">
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>G Pavan</span>
-              <strong className="text-zinc-900 dark:text-white">₹50,000</strong>
+      tabLabel: '02 Capital Pool',
+      stepNumber: '02',
+      leftHeadline: '₹1,60,000 pool tracked live.',
+      leftSubtext: 'Committed Founder Capital',
+      title: 'The Capital Pool',
+      subtitle: 'How founder contributions and balances work.',
+      content: (
+        <div className="space-y-3.5 text-sm text-zinc-600 leading-relaxed">
+          <p>
+            Our launch budget is an aggregate pool of <strong className="text-zinc-950 font-semibold">₹1,60,000</strong> committed across the 6 partners:
+          </p>
+
+          <div className="p-3.5 rounded-xl border border-gray-200 bg-white space-y-2 text-xs">
+            <div className="flex justify-between items-center py-1 border-b border-gray-100">
+              <span className="font-medium text-zinc-800">G Pavan & M Nareen</span>
+              <span className="font-semibold text-zinc-950">₹50,000 each</span>
             </div>
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>M Nareen</span>
-              <strong className="text-zinc-900 dark:text-white">₹50,000</strong>
+            <div className="flex justify-between items-center py-1 border-b border-gray-100">
+              <span className="font-medium text-zinc-800">N Charan Tej & Dheeraj Bathi</span>
+              <span className="font-semibold text-zinc-950">₹20,000 each</span>
             </div>
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>N Charan Tej (Lead)</span>
-              <strong className="text-zinc-900 dark:text-white">₹20,000</strong>
-            </div>
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>Dheeraj</span>
-              <strong className="text-zinc-900 dark:text-white">₹20,000</strong>
-            </div>
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>G Sunil</span>
-              <strong className="text-zinc-900 dark:text-white">₹10,000</strong>
-            </div>
-            <div className="flex justify-between p-1.5 rounded bg-white dark:bg-zinc-800">
-              <span>J Sandeep</span>
-              <strong className="text-zinc-900 dark:text-white">₹10,000</strong>
+            <div className="flex justify-between items-center py-1">
+              <span className="font-medium text-zinc-800">G Sunil & J Sandeep</span>
+              <span className="font-semibold text-zinc-950">₹10,000 each</span>
             </div>
           </div>
+
+          <p className="text-xs text-zinc-500">
+            Whenever anyone logs an expense, their personal spent amount increases and remaining balance updates automatically.
+          </p>
         </div>
       ),
-      highlights: [
-        'Personal burn rate and liquid balance tracked automatically',
-        'Lead Founder (Charan) holds exclusive authority to adjust capital allocations',
-        'Complete transparency: all 6 partners see real-time pool utilization'
-      ]
+      buttonLabel: 'Next: Recording Expenses'
     },
     {
       id: 'ledger',
-      badge: 'Zero-Leakage Ledger',
-      badgeColor: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800/60',
-      title: 'Disbursement Ledger & Payment Proofs',
-      subtitle: 'UTR Audit Trail & Automated Email Alerts',
-      description: 'Record expenditures with payee, vendor, operational stream, and UTR transaction numbers. Attach digital payment proofs (receipt images or payment links) to eliminate unaccounted cash burn.',
-      visual: (
-        <div className="p-3.5 rounded-xl bg-zinc-900 text-white border border-zinc-800 space-y-2.5 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-white">Record Expense Modal</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">
-              Instant Gmail Alert
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700/80 space-y-1">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-white text-xs">₹3,450 • Flyers & Print</span>
-              <span className="text-[10px] text-zinc-400 font-mono-num">UTR: 4291882910</span>
+      tabLabel: '03 Expenses',
+      stepNumber: '03',
+      leftHeadline: 'Log spending with proof in 30 seconds.',
+      leftSubtext: 'UTR Reference • Instant Email Alerts',
+      title: 'How to Log an Expense',
+      subtitle: 'Keep our ledger balanced whenever you spend on Delizoo.',
+      content: (
+        <div className="space-y-3.5 text-sm text-zinc-600 leading-relaxed">
+          <p>
+            Paid a printer, canopy installer, or marketing ad? Add it in three simple steps:
+          </p>
+
+          <div className="space-y-2 text-xs">
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">1. Click "+ Record Expense"</span>
+              <p className="text-zinc-500">Found in the top bar. Fill in the amount, who paid, and vendor name.</p>
             </div>
-            <div className="text-[11px] text-zinc-400">
-              Payer: <strong className="text-zinc-200">G Sunil</strong> • Vendor: <strong className="text-zinc-200">Kakinada Print Hub</strong>
+
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">2. Attach Payment Proof</span>
+              <p className="text-zinc-500">Paste the UTR number or link your screenshot receipt for audit proof.</p>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 pt-0.5">
-            <Mail className="w-3.5 h-3.5 text-amber-400" />
-            <span>Automated alert delivered to all 6 co-founders on disbursement</span>
-          </div>
-        </div>
-      ),
-      highlights: [
-        'Click "View Proof" on any expense to inspect the payment screenshot',
-        'Automatic transactional email sent to all 6 founders when expenses are recorded',
-        'Filter by founder or category (/expenses?payer=Sunil) for audit reviews'
-      ]
-    },
-    {
-      id: 'kanban',
-      badge: 'Execution Engine',
-      badgeColor: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800/60',
-      title: 'Operational Task Kanban',
-      subtitle: 'Organized Execution Across Marketing & Setup Streams',
-      description: 'Coordinate tasks across operational streams: Digital Marketing, Flyers & Canvassing, Store Setup, and Logistics. Drag cards through Backlog, In Progress, Review, and Done.',
-      visual: (
-        <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 space-y-2">
-          <div className="grid grid-cols-4 gap-1.5 text-[10px] font-bold text-center">
-            <div className="p-1.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200">
-              Backlog
-            </div>
-            <div className="p-1.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-              In Progress
-            </div>
-            <div className="p-1.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-              Review
-            </div>
-            <div className="p-1.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-              Done
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs">
-            <div className="font-semibold text-zinc-900 dark:text-white">Store Canopy & Standee Installation</div>
-            <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1">
-              <span>Assignee: <strong>G Pavan</strong></span>
-              <span className="px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-semibold">Urgent</span>
+
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">3. Automatic Email Alerts</span>
+              <p className="text-zinc-500">All 6 co-founders instantly receive an email alert with the spend details.</p>
             </div>
           </div>
         </div>
       ),
-      highlights: [
-        'Automated Assignment Alerts: Assigned founders receive email alerts with deadlines',
-        'Role-Based Progress: Partners update their own operational deliverables',
-        'Real-time board synchronization across devices'
-      ]
+      buttonLabel: 'Next: Daily Tasks'
     },
     {
       id: 'playbook',
-      badge: 'Founder Daily Playbook',
-      badgeColor: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60',
-      title: 'How to Use: Daily Founder Workflow',
-      subtitle: 'Best Practices for the Delizoo Sprint',
-      description: 'Follow this rhythm to maintain 100% financial accuracy and operational velocity as we approach the Kakinada market launch:',
-      visual: (
-        <div className="space-y-2 text-xs">
-          <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700">
-            <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-              1
-            </div>
-            <div>
-              <strong className="text-zinc-950 dark:text-white block">Morning Check-In</strong>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Open the <strong>Tasks</strong> tab to inspect your assigned deliverables and deadlines.</span>
-            </div>
-          </div>
+      tabLabel: '04 Tasks',
+      stepNumber: '04',
+      leftHeadline: 'Coordinate work. Launch on time.',
+      leftSubtext: 'Kanban Board • Daily Sync',
+      title: 'Managing Launch Tasks',
+      subtitle: 'How the team collaborates every day.',
+      content: (
+        <div className="space-y-3.5 text-sm text-zinc-600 leading-relaxed">
+          <p>
+            Use the <strong className="text-zinc-950 font-semibold">Tasks</strong> tab to divide and track launch deliverables:
+          </p>
 
-          <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700">
-            <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-              2
+          <div className="space-y-2 text-xs">
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">Kanban Board</span>
+              <p className="text-zinc-500">Move cards across Backlog → In Progress → Review → Done.</p>
             </div>
-            <div>
-              <strong className="text-zinc-950 dark:text-white block">Immediate Disbursement Logging</strong>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Whenever paying a vendor, record the expense immediately with UTR and receipt screenshot.</span>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700">
-            <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-              3
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">Task Assignment & Alerts</span>
+              <p className="text-zinc-500">Assign a deliverable to any founder; they receive an email reminder immediately.</p>
             </div>
-            <div>
-              <strong className="text-zinc-950 dark:text-white block">Audit & Account Switching</strong>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Click your profile in the top-right to view your personal burn or switch founder accounts.</span>
+
+            <div className="p-3 rounded-xl border border-gray-100 bg-zinc-50/70">
+              <span className="font-semibold text-zinc-900 block mb-0.5">Switch Profiles Easily</span>
+              <p className="text-zinc-500">Click your avatar in the top-right to view your personal burn or switch profiles.</p>
             </div>
           </div>
         </div>
       ),
-      highlights: [
-        'Accessible anytime: Click "OS Guide" in the top navigation bar',
-        'Deep-linking supported: Bookmark /expenses or /tasks for direct 1-click access',
-        'Full CSV & JSON exports available in Reports tab for offline audits'
-      ]
+      buttonLabel: 'Enter Delizoo OS'
     }
   ];
 
-  // Keyboard navigation
+  // Keyboard navigation (Arrow keys + Escape)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'ArrowRight' && currentStep < steps.length - 1) {
@@ -249,136 +168,180 @@ export function ProductTourModal({ isOpen, onClose, onExploreLedger, onExploreKa
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentStep, steps.length, onClose]);
 
-  const stepData = steps[currentStep];
+  const step = steps[currentStep];
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/70 dark:bg-black/85 backdrop-blur-sm animate-in">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs select-none animate-in">
+      
+      {/* Centered Split Card Container matching signin page exactly */}
+      <div className="w-full relative max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-3xl border border-zinc-800 bg-white">
+        
+        {/* Left Artistic Dark Panel */}
+        <div className="bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex flex-col justify-between min-h-[460px] md:min-h-[580px]">
+          {/* Top Gradient Overlay */}
+          <div className="w-full h-full z-2 absolute inset-0 bg-gradient-to-t from-transparent via-black/40 to-black pointer-events-none"></div>
+          
+          {/* Fluted Vertical Glass Pillars */}
+          <div className="flex absolute inset-0 z-2 overflow-hidden backdrop-blur-2xl pointer-events-none">
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+            <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+          </div>
 
-        {/* Top Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80">
-              <Compass className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+          {/* Luminous Glowing Orbs at Bottom */}
+          <div className="w-[16rem] h-[16rem] bg-orange-500 absolute z-1 rounded-full -bottom-10 -left-10 blur-xl opacity-90"></div>
+          <div className="w-[8rem] h-[5rem] bg-white absolute z-1 rounded-full bottom-0 left-8 blur-xl opacity-70"></div>
+          <div className="w-[8rem] h-[5rem] bg-white absolute z-1 rounded-full bottom-0 left-20 blur-xl opacity-70"></div>
+
+          {/* Top Logo & Tag */}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="Delizoo Logo" className="w-7 h-7 rounded-lg object-contain" />
+              <span className="text-sm font-bold tracking-tight text-white">Delizoo OS</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-zinc-950 dark:text-white leading-tight">
-                  Delizoo OS Interactive Guide
-                </h3>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${stepData.badgeColor}`}>
-                  {stepData.badge}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num mt-0.5">
-                Step {currentStep + 1} of {steps.length}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            title="Close Guide (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Modal Scrollable Body */}
-        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
-
-          {/* Step Headline */}
-          <div>
-            <h2 className="text-lg sm:text-xl font-extrabold text-zinc-950 dark:text-white tracking-tight">
-              {stepData.title}
-            </h2>
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5">
-              {stepData.subtitle}
-            </p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed mt-2">
-              {stepData.description}
-            </p>
-          </div>
-
-          {/* Interactive Visual Preview Box */}
-          <div className="rounded-xl overflow-hidden">
-            {stepData.visual}
-          </div>
-
-          {/* Highlight Points */}
-          <div className="space-y-2 pt-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-              Core Principles & Rules
+            <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/10 text-white/90 border border-white/20">
+              Guide • {step.stepNumber} of 04
             </span>
-            <div className="space-y-1.5">
-              {stepData.highlights.map((h, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
-                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{h}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
+          {/* Hero Headline */}
+          <div className="relative z-10 my-auto py-10">
+            <h1 className="text-2xl md:text-3xl font-medium leading-tight tracking-tight text-white max-w-sm transition-all duration-300">
+              {step.leftHeadline}
+            </h1>
+            <p className="text-xs text-zinc-400 mt-3 font-mono">
+              {step.leftSubtext}
+            </p>
+          </div>
+
+          {/* Bottom Founder Tag */}
+          <div className="relative z-10 text-xs text-zinc-400 font-mono-num flex items-center justify-between">
+            <span>Kakinada Launch Operations</span>
+            <span className="text-zinc-500">Private OS</span>
+          </div>
         </div>
 
-        {/* Modal Footer Controls */}
-        <div className="p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-800/40 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
+        {/* Right Content Panel matching signin page exactly */}
+        <div className="p-8 md:p-12 md:w-1/2 flex flex-col justify-between bg-white text-zinc-900 z-10 relative">
+          
+          {/* Top Sunburst & Close Button */}
+          <div className="flex items-start justify-between">
+            <div className="text-orange-500 mb-2">
+              <Sun className="h-10 w-10 text-orange-500" />
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+              title="Close Guide (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-          {/* Step Dots Indicator */}
-          <div className="flex items-center gap-1.5">
-            {steps.map((_, idx) => (
+          {/* Clean Segmented Tab Bar */}
+          <div className="flex items-center gap-1 border-b border-gray-100 pb-3 mb-4 overflow-x-auto scrollbar-none">
+            {steps.map((s, idx) => (
               <button
-                key={idx}
+                key={s.id}
                 type="button"
                 onClick={() => setCurrentStep(idx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${currentStep === idx
-                    ? 'w-6 bg-zinc-900 dark:bg-white'
-                    : 'w-2 bg-zinc-300 dark:bg-zinc-700 hover:bg-zinc-400 dark:hover:bg-zinc-600'
-                  }`}
-                title={`Jump to step ${idx + 1}`}
-              />
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  currentStep === idx
+                    ? 'bg-zinc-900 text-white'
+                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                }`}
+              >
+                {s.tabLabel}
+              </button>
             ))}
           </div>
 
-          {/* Previous / Next Buttons */}
-          <div className="flex items-center gap-2">
-            {currentStep > 0 && (
-              <button
-                type="button"
-                onClick={() => setCurrentStep(prev => prev - 1)}
-                className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Previous</span>
-              </button>
-            )}
+          {/* Slide Main Content */}
+          <div className="my-auto py-1">
+            <h2 className="text-2xl sm:text-3xl font-medium mb-1 tracking-tight text-zinc-950">
+              {step.title}
+            </h2>
+            <p className="text-left text-sm text-zinc-500 mb-4">
+              {step.subtitle}
+            </p>
 
-            {currentStep < steps.length - 1 ? (
+            <div className="animate-in fade-in duration-200">
+              {step.content}
+            </div>
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="pt-5 border-t border-gray-100 flex items-center justify-between mt-4">
+            
+            {/* Step Dots Indicator */}
+            <div className="flex items-center gap-1.5">
+              {steps.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCurrentStep(idx)}
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    currentStep === idx
+                      ? 'w-6 bg-orange-500'
+                      : 'w-2 bg-gray-200 hover:bg-gray-300'
+                  }`}
+                  title={`Jump to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-2">
+              {currentStep > 0 && (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="px-3.5 py-2.5 rounded-lg border border-gray-300 text-xs font-medium text-zinc-700 hover:bg-gray-50 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back</span>
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={() => setCurrentStep(prev => prev + 1)}
-                className="px-4 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
+                onClick={handleNext}
+                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-2.5 px-5 rounded-lg text-xs transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
               >
-                <span>Next Step</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>{step.buttonLabel}</span>
+                {currentStep < steps.length - 1 ? (
+                  <ArrowRight className="w-3.5 h-3.5" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Finish Guide & Start</span>
-              </button>
-            )}
+            </div>
+
           </div>
 
         </div>
 
       </div>
+
     </div>
   );
 }

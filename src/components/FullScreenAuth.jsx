@@ -152,7 +152,7 @@ export const FullScreenSignup = ({
           {/* Hero Headline */}
           <div className="relative z-10 my-auto py-10">
             <h1 className="text-2xl md:text-3xl font-medium leading-tight tracking-tight text-white max-w-sm">
-              Design and dev partner for startups and founders.
+              Internal operations, capital & launch command for Delizoo.
             </h1>
           </div>
 
