@@ -76,9 +76,11 @@ export function Navbar({
               setActiveTab('overview');
             }}
           >
-            <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-sm shadow-xs">
-              D
-            </div>
+            <img
+              src="/logo.png"
+              alt="Delizoo Logo"
+              className="w-8 h-8 rounded-lg object-contain shrink-0 transition-transform hover:scale-105"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-bold tracking-tight text-zinc-950 dark:text-white">

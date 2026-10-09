@@ -80,9 +80,11 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, partners = DEFAULT
         {/* Modal Header */}
         <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-xs">
-              D
-            </div>
+            <img
+              src="/logo.png"
+              alt="Delizoo Logo"
+              className="w-7 h-7 rounded-lg object-contain shrink-0"
+            />
             <div>
               <h2 className="text-sm font-bold text-zinc-950 dark:text-white">
                 Delizoo OS Partner Sign-In

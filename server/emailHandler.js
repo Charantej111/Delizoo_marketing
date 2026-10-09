@@ -145,8 +145,8 @@ export async function handleSendEmail(reqBody) {
                   <td>
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="width: 28px; height: 28px; background-color: #0f172a; border-radius: 6px; text-align: center; vertical-align: middle; color: #ffffff; font-weight: bold; font-size: 14px; line-height: 28px;">
-                          D
+                        <td style="width: 28px; height: 28px; vertical-align: middle;">
+                          <img src="${appUrl}/logo.png" alt="Delizoo" width="28" height="28" style="display: block; border-radius: 6px; width: 28px; height: 28px; object-fit: contain;" />
                         </td>
                         <td style="padding-left: 10px; font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;">
                           Delizoo OS
@@ -305,8 +305,8 @@ export async function handleSendEmail(reqBody) {
                   <td>
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="width: 28px; height: 28px; background-color: #0f172a; border-radius: 6px; text-align: center; vertical-align: middle; color: #ffffff; font-weight: bold; font-size: 14px; line-height: 28px;">
-                          D
+                        <td style="width: 28px; height: 28px; vertical-align: middle;">
+                          <img src="${appUrl}/logo.png" alt="Delizoo" width="28" height="28" style="display: block; border-radius: 6px; width: 28px; height: 28px; object-fit: contain;" />
                         </td>
                         <td style="padding-left: 10px; font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;">
                           Delizoo OS
@@ -546,8 +546,8 @@ export async function handleSendOtp({ email }) {
                   <td>
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="width: 28px; height: 28px; background-color: #0f172a; border-radius: 6px; text-align: center; vertical-align: middle; color: #ffffff; font-weight: bold; font-size: 14px; line-height: 28px;">
-                          D
+                        <td style="width: 28px; height: 28px; vertical-align: middle;">
+                          <img src="${appUrl}/logo.png" alt="Delizoo" width="28" height="28" style="display: block; border-radius: 6px; width: 28px; height: 28px; object-fit: contain;" />
                         </td>
                         <td style="padding-left: 10px; font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;">
                           Delizoo OS

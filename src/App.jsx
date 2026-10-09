@@ -491,6 +491,7 @@ export default function App() {
       <footer className="py-5 mt-auto no-print border-t border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/40 text-xs text-zinc-500 dark:text-zinc-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+            <img src="/logo.png" alt="Delizoo Logo" className="w-4 h-4 object-contain" />
             <span className="font-semibold text-zinc-900 dark:text-white">Delizoo OS</span>
             <span>•</span>
             <span>Kakinada Operations</span>
