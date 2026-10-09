@@ -1,6 +1,6 @@
 import pg from 'pg';
 
-const connectionString = "postgresql://postgres:Charanteja@61A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
+const connectionString = "://postgres:Charanteja@61A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
 
 const client = new pg.Client({
   connectionString,
@@ -8,7 +8,7 @@ const client = new pg.Client({
 });
 
 async function main() {
-  console.log("Connecting to Supabase PostgreSQL database...");
+  console.log("Connecting to Supabase  database...");
   await client.connect();
   console.log("Connected successfully!");
 

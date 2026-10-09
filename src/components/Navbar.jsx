@@ -12,7 +12,8 @@ import {
   User,
   LogOut,
   Shield,
-  ChevronDown
+  ChevronDown,
+  Compass
 } from 'lucide-react';
 
 export function Navbar({
@@ -21,6 +22,7 @@ export function Navbar({
   onOpenExpenseModal,
   onOpenTaskModal,
   onOpenPartnerModal,
+  onOpenTour,
   searchQuery,
   setSearchQuery,
   expenseCount,
@@ -117,6 +119,19 @@ export function Navbar({
             >
               <Search className="w-4 h-4" />
             </button>
+
+            {/* OS Guide / Tour Button */}
+            {onOpenTour && (
+              <button
+                type="button"
+                onClick={onOpenTour}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/90 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+                title="What is this for & How to use"
+              >
+                <Compass className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden sm:inline">OS Guide</span>
+              </button>
+            )}
 
             {/* Dark / Light Mode Toggle */}
             {toggleTheme && (
@@ -235,14 +250,17 @@ export function Navbar({
                 )}
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={onOpenLoginModal}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+              <a
+                href="/signup"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onOpenLoginModal) onOpenLoginModal();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer no-underline"
               >
                 <User className="w-3.5 h-3.5 text-zinc-500" />
                 <span>Create Account / Sign In</span>
-              </button>
+              </a>
             )}
           </div>
         </div>

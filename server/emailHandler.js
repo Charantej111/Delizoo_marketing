@@ -27,7 +27,7 @@ function loadEnvFallback() {
 }
 loadEnvFallback();
 
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres:Charanteja@61A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
+const connectionString = process.env.DATABASE_URL || "://postgres:Charanteja@61A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
 
 // Helper to log to Supabase email_logs table
 async function logEmailToDb(eventType, recipient, subject, body, status, error = null) {
@@ -687,8 +687,8 @@ export async function handleVerifyOtp({ email, otp }) {
     }
 
     const isLead = (partner.name || '').toLowerCase().includes('charan') ||
-                   (partner.role || '').toLowerCase().includes('lead') ||
-                   normalizedEmail.includes('ncharantejaa');
+      (partner.role || '').toLowerCase().includes('lead') ||
+      normalizedEmail.includes('ncharantejaa');
 
     return {
       success: true,

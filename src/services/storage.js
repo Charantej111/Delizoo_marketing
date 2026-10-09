@@ -1,5 +1,5 @@
 // Supabase Cloud & Local Device Storage Service for Delizoo Tracker
-// 100% Dynamic, 0% Mock Data, Real-time PostgreSQL Sync
+// 100% Dynamic, 0% Mock Data, Real-time  Sync
 import { supabase } from './supabase';
 
 export const DEFAULT_PARTNERS = [

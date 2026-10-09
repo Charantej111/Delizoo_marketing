@@ -15,6 +15,8 @@ import { LoginModal } from './components/LoginModal';
 import { storageService, DEFAULT_PARTNERS } from './services/storage';
 import { emailService } from './services/emailService';
 import { authService } from './services/authService';
+import { FullScreenAuth } from './components/FullScreenAuth';
+import { ProductTourModal } from './components/ProductTourModal';
 
 // SPA Route to Tab mappings for seamless Vercel hosting & deep linking
 const ROUTE_MAP = {
@@ -24,18 +26,30 @@ const ROUTE_MAP = {
   '/tasks': 'kanban',
   '/kanban': 'kanban',
   '/reports': 'reports',
-  '/audit': 'reports'
+  '/audit': 'reports',
+  '/signup': 'signup',
+  '/login': 'login',
+  '/guide': 'guide',
+  '/tour': 'guide'
 };
 
 const TAB_PAGE_TITLES = {
   overview: 'Delizoo OS - Executive Dashboard & Operations',
   expenses: 'Delizoo OS - Capital Ledger & Expenses',
   kanban: 'Delizoo OS - Task Execution & Kanban',
-  reports: 'Delizoo OS - Audit Reports & Summary'
+  reports: 'Delizoo OS - Audit Reports & Summary',
+  signup: 'Delizoo OS - Create Founder Account',
+  login: 'Delizoo OS - Founder Sign-In',
+  guide: 'Delizoo OS - Interactive Guide & Tour'
 };
 
 function getTabFromPath(pathname = '/') {
   const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  if (clean === '/' || clean === '/login' || clean === '/signin') {
+    const user = authService.getCurrentUser();
+    if (!user) return 'login';
+    return 'overview';
+  }
   return ROUTE_MAP[clean] || 'overview';
 }
 
@@ -44,6 +58,8 @@ function getPathFromTab(tabId) {
     case 'expenses': return '/expenses';
     case 'kanban': return '/tasks';
     case 'reports': return '/reports';
+    case 'signup': return '/signup';
+    case 'login': return '/login';
     case 'overview':
     default:
       return '/overview';
@@ -172,6 +188,16 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
+  // Tour / Guide State
+  const [isTourOpen, setIsTourOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      return path.includes('guide') || path.includes('tour') || params.get('tour') === 'true';
+    }
+    return false;
+  });
+
   useEffect(() => {
     if (partners && partners.length > 0) {
       const refreshed = authService.getCurrentUser(partners);
@@ -222,7 +248,7 @@ export default function App() {
     setSpendAreas(data.spendAreas || []);
     setIsLoaded(true);
 
-    // 2. Fetch live records from Supabase PostgreSQL & auto-push any existing local records
+    // 2. Fetch live records from Supabase  & auto-push any existing local records
     storageService.syncWithSupabase((synced) => {
       if (synced) {
         if (synced.tasks) setTasks(synced.tasks);
@@ -286,7 +312,7 @@ export default function App() {
       return updated;
     });
 
-    // Push item to Supabase PostgreSQL database
+    // Push item to Supabase  database
     storageService.saveExpenseItem(expense);
 
     // Send email alert to founders via Gmail SMTP when expense is recorded
@@ -328,7 +354,7 @@ export default function App() {
       return updated;
     });
 
-    // Push item to Supabase PostgreSQL database
+    // Push item to Supabase  database
     storageService.saveTaskItem(task);
 
     // Send email alert to assigned partner via Gmail SMTP if new or reassigned
@@ -414,6 +440,25 @@ export default function App() {
     );
   }
 
+  // Full-Screen Signup & Login View
+  if (activeTab === 'signup' || activeTab === 'login' || isLoginModalOpen) {
+    return (
+      <FullScreenAuth
+        initialMode={activeTab === 'login' ? 'signin' : 'create'}
+        onLoginSuccess={(partner) => {
+          handleLoginSuccess(partner);
+          setActiveTab('overview');
+          setIsLoginModalOpen(false);
+        }}
+        onBackToApp={() => {
+          setActiveTab('overview');
+          setIsLoginModalOpen(false);
+        }}
+        partners={partners}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col selection:bg-zinc-900 dark:selection:bg-emerald-500 selection:text-white dark:selection:text-zinc-950 transition-colors duration-200">
       {/* Top Navbar */}
@@ -423,6 +468,7 @@ export default function App() {
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
         onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
         onOpenPartnerModal={handleOpenPartnerModal}
+        onOpenTour={() => setIsTourOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         expenseCount={expenses.length}
@@ -431,7 +477,7 @@ export default function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
-        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenLoginModal={() => { setActiveTab('signup'); setIsLoginModalOpen(true); }}
         onLogout={handleLogout}
       />
 
@@ -445,6 +491,7 @@ export default function App() {
             spendAreas={spendAreas}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
             onOpenPartnerModal={handleOpenPartnerModal}
+            onOpenTour={() => setIsTourOpen(true)}
             onSelectPayerForExpenses={handleSelectPayerForExpenses}
             onSelectSpendAreaForExpenses={handleSelectSpendAreaForExpenses}
             onViewProof={handleViewProof}
@@ -519,7 +566,7 @@ export default function App() {
             </a>
           </div>
           <div className="text-[11px] text-zinc-400 font-mono-num">
-            Supabase PostgreSQL • Cloud & Local Cache Synced
+            Supabase  • Cloud & Local Cache Synced
           </div>
         </div>
       </footer>
@@ -572,6 +619,22 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
         partners={partners}
+      />
+
+      <ProductTourModal
+        isOpen={isTourOpen}
+        onClose={() => {
+          setIsTourOpen(false);
+          if (activeTab === 'guide') setActiveTab('overview');
+        }}
+        onExploreLedger={() => {
+          setIsTourOpen(false);
+          setActiveTab('expenses');
+        }}
+        onExploreKanban={() => {
+          setIsTourOpen(false);
+          setActiveTab('kanban');
+        }}
       />
     </div>
   );

@@ -8,7 +8,8 @@ import {
   Clock,
   ArrowRight,
   Eye,
-  FileText
+  FileText,
+  Compass
 } from 'lucide-react';
 import { DEFAULT_PARTNERS, normalizePayerName } from '../services/storage';
 
@@ -19,6 +20,7 @@ export function OverviewTab({
   spendAreas = [],
   onOpenExpenseModal,
   onOpenPartnerModal,
+  onOpenTour,
   onSelectPayerForExpenses,
   onSelectSpendAreaForExpenses,
   onViewProof,
@@ -126,6 +128,16 @@ export function OverviewTab({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenTour && (
+            <button
+              type="button"
+              onClick={onOpenTour}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/80 bg-amber-50/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all cursor-pointer shadow-2xs"
+            >
+              <Compass className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>OS Guide & Tour</span>
+            </button>
+          )}
           {(!currentUser || currentUser.isLead) && (
             <button
               onClick={onOpenPartnerModal}
