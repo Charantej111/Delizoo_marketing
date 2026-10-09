@@ -216,7 +216,7 @@ export function KanbanTab({
   return (
     <div className="space-y-5 sm:space-y-6 pb-12">
       {/* Header and Filter Controls */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-40">
         <div>
           <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
             <span>Milestones & Task Progress</span>
@@ -237,8 +237,8 @@ export function KanbanTab({
               value={filterSpendArea}
               onChange={setFilterSpendArea}
               size="sm"
-              align="right"
-              className="w-44 sm:w-48"
+              align="left"
+              className="w-48 sm:w-56"
               options={[
                 { value: 'All', label: 'All Streams' },
                 ...allStreams.map(a => ({ value: a, label: a }))
@@ -253,8 +253,8 @@ export function KanbanTab({
               value={filterAssignee}
               onChange={setFilterAssignee}
               size="sm"
-              align="right"
-              className="w-44 sm:w-48"
+              align="left"
+              className="w-48 sm:w-56"
               options={[
                 { value: 'All', label: 'All Assignees' },
                 ...allAssignees.map(name => {

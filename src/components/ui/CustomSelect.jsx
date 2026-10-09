@@ -36,7 +36,10 @@ export function CustomSelect({
     };
   });
 
-  const selectedOption = normalizedOptions.find(opt => String(opt.value) === String(value));
+  const selectedOption = normalizedOptions.find(opt => 
+    String(opt.value) === String(value) ||
+    (value !== undefined && value !== null && String(opt.value).toLowerCase() === String(value).toLowerCase())
+  );
 
   // Close when clicking outside
   useEffect(() => {
@@ -88,7 +91,7 @@ export function CustomSelect({
   const isSmall = size === 'sm';
 
   return (
-    <div className={`relative ${isOpen ? 'z-50' : 'z-auto'} ${className}`} ref={containerRef}>
+    <div className={`relative ${isOpen ? 'z-[100]' : 'z-auto'} ${className}`} ref={containerRef}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -130,7 +133,7 @@ export function CustomSelect({
       {/* Popover Menu */}
       {isOpen && (
         <div
-          className={`absolute z-50 mt-1.5 w-full min-w-[200px] max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl py-1.5 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100 ${
+          className={`absolute z-[100] mt-1.5 w-full min-w-[200px] max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl py-1.5 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100 ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
