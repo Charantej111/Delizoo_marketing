@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, User, Trash2, Edit2, CheckSquare, Search, Sliders } from 'lucide-react';
+import { Plus, User, Trash2, Edit2, CheckSquare, Search, Sliders, Lock } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { CustomSelect } from './ui/CustomSelect';
 import { DEFAULT_SPEND_AREAS, DEFAULT_PARTNERS, normalizePayerName } from '../services/storage';
+import { authService } from '../services/authService';
 
 function getAssigneeDetails(assigneeName, partners = DEFAULT_PARTNERS) {
   if (!assigneeName || !assigneeName.trim() || assigneeName.trim().toLowerCase() === 'unassigned') {
@@ -41,7 +42,8 @@ export function KanbanTab({
   onEditTask,
   onDeleteTask,
   onOpenTaskModal,
-  searchQuery = ''
+  searchQuery = '',
+  currentUser
 }) {
   const [filterSpendArea, setFilterSpendArea] = useState('All');
   const [filterAssignee, setFilterAssignee] = useState('All');
@@ -145,7 +147,7 @@ export function KanbanTab({
             Tasks & Milestones
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Organize operational workflows and track task execution across team members.
+            Universal milestone tracker. Assigned partners and Lead founder can update progress.
           </p>
         </div>
 
@@ -227,6 +229,7 @@ export function KanbanTab({
                   colTasks.map(task => {
                     const assignee = getAssigneeDetails(task.assignee, partners);
                     const progressVal = Number(task.progress) || (task.status === 'Completed' ? 100 : 0);
+                    const canEdit = !currentUser || authService.canUpdateTask(task, currentUser, partners);
 
                     return (
                       <div
@@ -239,20 +242,31 @@ export function KanbanTab({
                             {task.title}
                           </h3>
                           <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => onEditTask(task)}
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteTask(task.id)}
-                              className="p-1 rounded text-zinc-400 hover:text-rose-600 cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            {canEdit ? (
+                              <>
+                                <button
+                                  onClick={() => onEditTask(task)}
+                                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                                  title="Edit"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => onDeleteTask(task.id)}
+                                  className="p-1 rounded text-zinc-400 hover:text-rose-600 cursor-pointer"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <span
+                                className="p-1 text-zinc-300 dark:text-zinc-600 cursor-default"
+                                title={`Assigned to ${assignee.name}. Only ${assignee.name} or Lead can edit.`}
+                              >
+                                <Lock className="w-3 h-3" />
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -275,8 +289,12 @@ export function KanbanTab({
                             max="100"
                             step="5"
                             value={progressVal}
+                            disabled={!canEdit}
                             onChange={(e) => handleProgressChange(task, e)}
-                            className="w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
+                            className={`w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg appearance-none accent-zinc-900 dark:accent-white ${
+                              canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                            }`}
+                            title={canEdit ? 'Update progress' : `Only ${assignee.name} or Lead can update progress`}
                           />
                         </div>
 
@@ -295,8 +313,12 @@ export function KanbanTab({
                           {/* Quick Status Dropdown */}
                           <select
                             value={task.status}
+                            disabled={!canEdit}
                             onChange={(e) => handleStatusChange(task, e.target.value)}
-                            className="text-[11px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 text-zinc-700 dark:text-zinc-300 outline-none cursor-pointer"
+                            className={`text-[11px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 text-zinc-700 dark:text-zinc-300 outline-none ${
+                              canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                            }`}
+                            title={canEdit ? 'Change status' : `Only ${assignee.name} or Lead can change status`}
                           >
                             <option value="To Do">To Do</option>
                             <option value="In Progress">In Progress</option>

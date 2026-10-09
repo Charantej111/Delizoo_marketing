@@ -29,7 +29,8 @@ export function ExpenseModal({
   expenses = [],
   spendAreas = DEFAULT_SPEND_AREAS,
   onAddSpendArea,
-  onOpenPartnerModal
+  onOpenPartnerModal,
+  currentUser
 }) {
   if (!isOpen) return null;
 
@@ -38,7 +39,7 @@ export function ExpenseModal({
     amount: '',
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
-    payer: partners[0]?.name || 'N Charan Tej',
+    payer: currentUser?.name || partners[0]?.name || 'N Charan Tej',
     vendor: '',
     category: 'Digital Ads & Marketing',
     paymentMode: 'UPI',
@@ -101,7 +102,7 @@ export function ExpenseModal({
           amount: '',
           date: new Date().toISOString().split('T')[0],
           time: new Date().toTimeString().slice(0, 5),
-          payer: partners[0]?.name || 'N Charan Tej',
+          payer: currentUser?.name || partners[0]?.name || 'N Charan Tej',
           vendor: '',
           category: 'Digital Ads & Marketing',
           paymentMode: 'UPI',

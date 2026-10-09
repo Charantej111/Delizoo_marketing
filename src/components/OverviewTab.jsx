@@ -23,7 +23,8 @@ export function OverviewTab({
   onSelectSpendAreaForExpenses,
   onViewProof,
   onViewImpact,
-  setActiveTab
+  setActiveTab,
+  currentUser
 }) {
   // Financial aggregations
   const totalSpent = useMemo(() => {
@@ -125,12 +126,14 @@ export function OverviewTab({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenPartnerModal}
-            className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer"
-          >
-            Adjust Allocations
-          </button>
+          {(!currentUser || currentUser.isLead) && (
+            <button
+              onClick={onOpenPartnerModal}
+              className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer"
+            >
+              Adjust Allocations
+            </button>
+          )}
           <button
             onClick={onOpenExpenseModal}
             className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs cursor-pointer"
@@ -208,12 +211,14 @@ export function OverviewTab({
               Live tracking of each partner's assigned capital, disbursed expenditure, and remaining balance.
             </p>
           </div>
-          <button
-            onClick={onOpenPartnerModal}
-            className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
-          >
-            Manage Pool →
-          </button>
+          {(!currentUser || currentUser.isLead) && (
+            <button
+              onClick={onOpenPartnerModal}
+              className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
+            >
+              Manage Pool →
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -230,17 +235,28 @@ export function OverviewTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-              {partnerAnalytics.map((p) => (
-                <tr key={p.id || p.name} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-bold text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
-                        {p.initials}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-zinc-900 dark:text-white text-xs">
-                          {p.name}
+              {partnerAnalytics.map((p) => {
+                const isCurrentUser = currentUser && (
+                  (currentUser.email && p.email && currentUser.email.toLowerCase() === p.email.toLowerCase()) ||
+                  currentUser.name.toLowerCase() === p.name.toLowerCase()
+                );
+
+                return (
+                  <tr key={p.id || p.name} className={`hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors ${isCurrentUser ? 'bg-zinc-50/70 dark:bg-zinc-800/20' : ''}`}>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-bold text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                          {p.initials}
                         </div>
+                        <div>
+                          <div className="font-semibold text-zinc-900 dark:text-white text-xs flex items-center gap-1.5">
+                            <span>{p.name}</span>
+                            {isCurrentUser && (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-zinc-900 dark:bg-white text-white dark:text-zinc-950">
+                                You
+                              </span>
+                            )}
+                          </div>
                         {p.email && (
                           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
                             {p.email}
@@ -294,7 +310,8 @@ export function OverviewTab({
                     )}
                   </td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>

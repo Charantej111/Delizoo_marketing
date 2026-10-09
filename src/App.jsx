@@ -11,8 +11,10 @@ import {
   ImpactModal,
   PartnerModal
 } from './components/Modals';
+import { LoginModal } from './components/LoginModal';
 import { storageService, DEFAULT_PARTNERS } from './services/storage';
 import { emailService } from './services/emailService';
+import { authService } from './services/authService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -61,6 +63,37 @@ export default function App() {
 
   const [proofModalData, setProofModalData] = useState(null); // { expense }
   const [impactModalData, setImpactModalData] = useState(null); // { expense }
+
+  // Role-Based Auth State
+  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (partners && partners.length > 0) {
+      const refreshed = authService.getCurrentUser(partners);
+      if (refreshed) {
+        setCurrentUser(refreshed);
+      }
+    }
+  }, [partners]);
+
+  const handleLoginSuccess = useCallback((partner) => {
+    const session = authService.saveSession(partner);
+    setCurrentUser(session);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    authService.logout();
+    setCurrentUser(null);
+  }, []);
+
+  const handleOpenPartnerModal = useCallback(() => {
+    if (currentUser && !currentUser.isLead) {
+      alert(`Access Restricted: Only the Lead Founder (${DEFAULT_PARTNERS[0]?.name || 'N Charan Tej'}) can adjust capital pool allocations.`);
+      return;
+    }
+    setIsPartnerModalOpen(true);
+  }, [currentUser]);
 
   // Load from local storage immediately, then 2-way sync with Supabase Cloud
   useEffect(() => {
@@ -272,7 +305,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
         onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
-        onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
+        onOpenPartnerModal={handleOpenPartnerModal}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         expenseCount={expenses.length}
@@ -280,6 +313,9 @@ export default function App() {
         partnerCount={partners.length}
         theme={theme}
         toggleTheme={toggleTheme}
+        currentUser={currentUser}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}
@@ -291,12 +327,13 @@ export default function App() {
             partners={partners}
             spendAreas={spendAreas}
             onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-            onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
+            onOpenPartnerModal={handleOpenPartnerModal}
             onSelectPayerForExpenses={handleSelectPayerForExpenses}
             onSelectSpendAreaForExpenses={handleSelectSpendAreaForExpenses}
             onViewProof={handleViewProof}
             onViewImpact={handleViewImpact}
             setActiveTab={setActiveTab}
+            currentUser={currentUser}
           />
         )}
 
@@ -315,6 +352,7 @@ export default function App() {
             selectedPayer={selectedPayerForExpenses}
             setSelectedPayer={setSelectedPayerForExpenses}
             searchQuery={searchQuery}
+            currentUser={currentUser}
           />
         )}
 
@@ -328,6 +366,7 @@ export default function App() {
             onDeleteTask={handleDeleteTask}
             onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
             searchQuery={searchQuery}
+            currentUser={currentUser}
           />
         )}
 
@@ -337,7 +376,7 @@ export default function App() {
             expenses={expenses}
             partners={partners}
             spendAreas={spendAreas}
-            onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
+            onOpenPartnerModal={handleOpenPartnerModal}
             onClearData={handleClearData}
             onImportComplete={handleImportComplete}
           />
@@ -377,7 +416,8 @@ export default function App() {
         expenses={expenses}
         spendAreas={spendAreas}
         onAddSpendArea={handleAddSpendArea}
-        onOpenPartnerModal={() => { setIsExpenseModalOpen(false); setIsPartnerModalOpen(true); }}
+        onOpenPartnerModal={() => { setIsExpenseModalOpen(false); handleOpenPartnerModal(); }}
+        currentUser={currentUser}
       />
 
       <TaskModal
@@ -407,6 +447,13 @@ export default function App() {
         isOpen={!!impactModalData}
         onClose={() => setImpactModalData(null)}
         expense={impactModalData?.expense}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        partners={partners}
       />
     </div>
   );
