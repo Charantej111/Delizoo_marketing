@@ -877,7 +877,7 @@ export function TaskModal({
 
           {/* TASK PROGRESS CONTROL (Slider & Preset percentages) */}
           <div className="space-y-2.5 p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                 <span>TASK PROGRESS</span>
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono-num font-bold ${

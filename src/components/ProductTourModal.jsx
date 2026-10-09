@@ -185,13 +185,13 @@ export function ProductTourModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs select-none animate-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/80 backdrop-blur-xs select-none animate-in">
       
       {/* Centered Split Card Container matching signin page exactly */}
-      <div className="w-full relative max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-3xl border border-zinc-800 bg-white">
+      <div className="w-full relative max-w-5xl max-h-[92vh] flex flex-col md:flex-row shadow-2xl rounded-2xl sm:rounded-3xl border border-zinc-800 bg-white overflow-hidden">
         
-        {/* Left Artistic Dark Panel */}
-        <div className="bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex flex-col justify-between min-h-[460px] md:min-h-[580px]">
+        {/* Left Artistic Dark Panel (Desktop only) */}
+        <div className="hidden md:flex bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex-col justify-between min-h-[520px] lg:min-h-[580px] shrink-0">
           {/* Top Gradient Overlay */}
           <div className="w-full h-full z-2 absolute inset-0 bg-gradient-to-t from-transparent via-black/40 to-black pointer-events-none"></div>
           
@@ -239,18 +239,24 @@ export function ProductTourModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Right Content Panel matching signin page exactly */}
-        <div className="p-8 md:p-12 md:w-1/2 flex flex-col justify-between bg-white text-zinc-900 z-10 relative">
+        {/* Right Content Panel */}
+        <div className="p-5 sm:p-8 md:p-12 w-full md:w-1/2 flex flex-col justify-between bg-white text-zinc-900 z-10 relative overflow-y-auto max-h-[92vh] md:max-h-none">
           
-          {/* Top Sunburst & Close Button */}
-          <div className="flex items-start justify-between">
-            <div className="text-orange-500 mb-2">
-              <Sun className="h-10 w-10 text-orange-500" />
+          {/* Top Sunburst, Brand & Close Button */}
+          <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-gray-100">
+            <div className="flex items-center gap-2.5">
+              <div className="text-orange-500">
+                <Sun className="h-8 w-8 text-orange-500" />
+              </div>
+              <div className="md:hidden">
+                <span className="text-xs font-bold text-zinc-900 block leading-tight">Delizoo OS</span>
+                <span className="text-[10px] text-zinc-400 font-mono">Guide • {step.stepNumber} of 04</span>
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
               title="Close Guide (Esc)"
             >
               <X className="w-5 h-5" />
@@ -258,7 +264,7 @@ export function ProductTourModal({ isOpen, onClose }) {
           </div>
 
           {/* Clean Segmented Tab Bar */}
-          <div className="flex items-center gap-1 border-b border-gray-100 pb-3 mb-4 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 border-b border-gray-100 pb-2.5 my-3 overflow-x-auto scrollbar-none">
             {steps.map((s, idx) => (
               <button
                 key={s.id}
@@ -277,10 +283,10 @@ export function ProductTourModal({ isOpen, onClose }) {
 
           {/* Slide Main Content */}
           <div className="my-auto py-1">
-            <h2 className="text-2xl sm:text-3xl font-medium mb-1 tracking-tight text-zinc-950">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-medium mb-1 tracking-tight text-zinc-950">
               {step.title}
             </h2>
-            <p className="text-left text-sm text-zinc-500 mb-4">
+            <p className="text-left text-xs sm:text-sm text-zinc-500 mb-3 sm:mb-4">
               {step.subtitle}
             </p>
 
@@ -290,10 +296,10 @@ export function ProductTourModal({ isOpen, onClose }) {
           </div>
 
           {/* Bottom Controls */}
-          <div className="pt-5 border-t border-gray-100 flex items-center justify-between mt-4">
+          <div className="pt-3 sm:pt-4 border-t border-gray-100 flex items-center justify-between mt-3 sm:mt-4 gap-2">
             
             {/* Step Dots Indicator */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               {steps.map((_, idx) => (
                 <button
                   key={idx}
@@ -301,7 +307,7 @@ export function ProductTourModal({ isOpen, onClose }) {
                   onClick={() => setCurrentStep(idx)}
                   className={`h-2 rounded-full transition-all cursor-pointer ${
                     currentStep === idx
-                      ? 'w-6 bg-orange-500'
+                      ? 'w-5 sm:w-6 bg-orange-500'
                       : 'w-2 bg-gray-200 hover:bg-gray-300'
                   }`}
                   title={`Jump to slide ${idx + 1}`}
@@ -310,12 +316,12 @@ export function ProductTourModal({ isOpen, onClose }) {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {currentStep > 0 && (
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="px-3.5 py-2.5 rounded-lg border border-gray-300 text-xs font-medium text-zinc-700 hover:bg-gray-50 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg border border-gray-300 text-xs font-medium text-zinc-700 hover:bg-gray-50 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Back</span>
@@ -325,7 +331,7 @@ export function ProductTourModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleNext}
-                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-2.5 px-5 rounded-lg text-xs transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-2 px-3.5 sm:py-2.5 sm:px-5 rounded-lg text-xs transition-colors cursor-pointer shadow-xs flex items-center gap-1.5 whitespace-nowrap"
               >
                 <span>{step.buttonLabel}</span>
                 {currentStep < steps.length - 1 ? (

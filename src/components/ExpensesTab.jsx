@@ -344,92 +344,168 @@ export function ExpensesTab({
           onAction={hasActiveFilters ? handleResetFilters : onOpenExpenseModal}
         />
       ) : (
-        <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Payee / Description</th>
-                  <th className="py-3 px-4">Paid By</th>
-                  <th className="py-3 px-4">Spend Area</th>
-                  <th className="py-3 px-4">Mode</th>
-                  <th className="py-3 px-4 text-center">Receipt</th>
-                  <th className="py-3 px-4 font-mono-num text-right">Amount</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                {sortedExpenses.map((e) => (
-                  <tr key={e.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-3 px-4 font-mono-num text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
-                      {e.date}
-                      {e.time && <span className="text-[10px] text-zinc-400 block">{e.time}</span>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-zinc-950 dark:text-white">
-                        {e.vendor || e.category || 'General Expense'}
-                      </div>
-                      {e.howItHelped && (
-                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 line-clamp-1">
-                          {e.howItHelped}
-                        </div>
-                      )}
-                      {e.utrNumber && (
-                        <div className="text-[10px] font-mono-num text-zinc-400">
-                          Ref: {e.utrNumber}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                        {normalizePayerName(e.payer, partners)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
-                      {e.spendArea || e.category || 'General'}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 font-mono-num text-[11px]">
-                      {e.paymentMode || 'UPI'}
-                    </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      {e.proofDataUrl ? (
-                        <button
-                          onClick={() => onViewProof(e)}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-zinc-500" />
-                          <span>View</span>
-                        </button>
-                      ) : (
-                        <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 font-mono-num font-bold text-zinc-950 dark:text-white text-right whitespace-nowrap text-xs">
+        <div>
+          {/* Mobile Card List (under md) */}
+          <div className="md:hidden space-y-3">
+            {sortedExpenses.map((e) => (
+              <div
+                key={e.id}
+                className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-zinc-950 dark:text-white text-sm truncate">
+                      {e.vendor || e.category || 'General Expense'}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span>{e.date}</span>
+                      {e.time && <span>• {e.time}</span>}
+                      <span>• {e.spendArea || e.category || 'General'}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold font-mono-num text-zinc-950 dark:text-white text-base">
                       ₹{Number(e.amount).toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => onEditExpense(e)}
-                          className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteExpense(e.id)}
-                          className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
+                    </div>
+                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 mt-0.5">
+                      {e.paymentMode || 'UPI'}
+                    </span>
+                  </div>
+                </div>
+
+                {e.howItHelped && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+                    {e.howItHelped}
+                  </p>
+                )}
+
+                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 text-[11px] truncate mr-2">
+                    <span className="text-zinc-400 shrink-0">Paid by:</span>
+                    <span className="font-semibold truncate">{normalizePayerName(e.payer, partners)}</span>
+                    {e.utrNumber && (
+                      <span className="text-zinc-400 font-mono-num hidden sm:inline">({e.utrNumber})</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {e.proofDataUrl && (
+                      <button
+                        onClick={() => onViewProof(e)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Proof</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onEditExpense(e)}
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      title="Edit"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteExpense(e.id)}
+                      className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table (md and up) */}
+          <div className="hidden md:block rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Payee / Description</th>
+                    <th className="py-3 px-4">Paid By</th>
+                    <th className="py-3 px-4">Spend Area</th>
+                    <th className="py-3 px-4">Mode</th>
+                    <th className="py-3 px-4 text-center">Receipt</th>
+                    <th className="py-3 px-4 font-mono-num text-right">Amount</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                  {sortedExpenses.map((e) => (
+                    <tr key={e.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <td className="py-3 px-4 font-mono-num text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                        {e.date}
+                        {e.time && <span className="text-[10px] text-zinc-400 block">{e.time}</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-zinc-950 dark:text-white">
+                          {e.vendor || e.category || 'General Expense'}
+                        </div>
+                        {e.howItHelped && (
+                          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 line-clamp-1">
+                            {e.howItHelped}
+                          </div>
+                        )}
+                        {e.utrNumber && (
+                          <div className="text-[10px] font-mono-num text-zinc-400">
+                            Ref: {e.utrNumber}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                          {normalizePayerName(e.payer, partners)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                        {e.spendArea || e.category || 'General'}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 font-mono-num text-[11px]">
+                        {e.paymentMode || 'UPI'}
+                      </td>
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        {e.proofDataUrl ? (
+                          <button
+                            onClick={() => onViewProof(e)}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-zinc-500" />
+                            <span>View</span>
+                          </button>
+                        ) : (
+                          <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-mono-num font-bold text-zinc-950 dark:text-white text-right whitespace-nowrap text-xs">
+                        ₹{Number(e.amount).toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => onEditExpense(e)}
+                            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteExpense(e.id)}
+                            className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

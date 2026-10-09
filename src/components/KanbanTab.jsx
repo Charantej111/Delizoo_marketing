@@ -198,7 +198,7 @@ export function KanbanTab({
           return (
             <div
               key={col.id}
-              className="rounded-xl bg-zinc-50/70 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 flex flex-col min-h-120"
+              className="rounded-xl bg-zinc-50/70 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 flex flex-col min-h-36 sm:min-h-120"
             >
               {/* Column Header */}
               <div className="p-3.5 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">

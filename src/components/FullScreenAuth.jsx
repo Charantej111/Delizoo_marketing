@@ -111,13 +111,13 @@ export const FullScreenSignup = ({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden p-4 bg-zinc-950/80 backdrop-blur-xs select-none">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6 bg-zinc-950/80 backdrop-blur-xs select-none overflow-y-auto">
       
       {/* Centered Split Card Container */}
-      <div className="w-full relative max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-3xl border border-zinc-800 bg-white">
+      <div className="w-full relative max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-2xl sm:rounded-3xl border border-zinc-800 bg-white my-auto">
         
-        {/* Left Artistic Dark Panel */}
-        <div className="bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex flex-col justify-between min-h-[460px] md:min-h-[580px]">
+        {/* Left Artistic Dark Panel (Desktop only) */}
+        <div className="hidden md:flex bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex-col justify-between min-h-[520px] lg:min-h-[580px] shrink-0">
           {/* Top Gradient Overlay */}
           <div className="w-full h-full z-2 absolute inset-0 bg-gradient-to-t from-transparent via-black/40 to-black pointer-events-none"></div>
           
@@ -169,14 +169,35 @@ export const FullScreenSignup = ({
         </div>
 
         {/* Right Form Panel */}
-        <div className="p-8 md:p-12 md:w-1/2 flex flex-col justify-center bg-white text-zinc-900 z-10 relative">
+        <div className="p-6 sm:p-8 md:p-12 w-full md:w-1/2 flex flex-col justify-center bg-white text-zinc-900 z-10 relative">
           
-          {/* Header with Sunburst Icon */}
-          <div className="flex flex-col items-start mb-8">
-            <div className="text-orange-500 mb-4">
-              <Sun className="h-10 w-10 text-orange-500" />
+          {/* Mobile Top Brand & Optional Back Button */}
+          <div className="md:hidden flex items-center justify-between pb-3.5 mb-5 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Delizoo Logo" className="w-6 h-6 rounded-md object-contain" />
+              <div>
+                <span className="text-xs font-bold tracking-tight text-zinc-900 block leading-tight">Delizoo OS</span>
+                <span className="text-[10px] text-zinc-400 font-mono leading-none">Private Operations</span>
+              </div>
             </div>
-            <h2 className="text-3xl font-medium mb-2 tracking-tight text-zinc-950">
+            {onBackToApp && currentUser && (
+              <button
+                type="button"
+                onClick={onBackToApp}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-[11px] font-semibold text-zinc-700 transition-all cursor-pointer"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Return to OS</span>
+              </button>
+            )}
+          </div>
+
+          {/* Header with Sunburst Icon */}
+          <div className="flex flex-col items-start mb-6 sm:mb-8">
+            <div className="text-orange-500 mb-3 sm:mb-4">
+              <Sun className="h-8 w-8 sm:h-10 sm:w-10 text-orange-500" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-medium mb-1.5 sm:mb-2 tracking-tight text-zinc-950">
               {step === 'otp' ? 'Confirm Code' : (mode === 'create' ? 'Get Started' : 'Sign In')}
             </h2>
             <p className="text-left text-sm text-zinc-500">

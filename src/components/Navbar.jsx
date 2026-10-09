@@ -67,12 +67,12 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-15 gap-3 sm:gap-4">
+        <div className="flex items-center justify-between h-14 sm:h-15 gap-2 sm:gap-4">
           
           {/* Brand Mark */}
           <a
             href="/overview"
-            className="flex items-center gap-3 cursor-pointer shrink-0 no-underline text-inherit"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 no-underline text-inherit"
             onClick={(e) => {
               e.preventDefault();
               setActiveTab('overview');
@@ -81,15 +81,15 @@ export function Navbar({
             <img
               src="/logo.png"
               alt="Delizoo Logo"
-              className="w-8 h-8 rounded-lg object-contain shrink-0 transition-transform hover:scale-105"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain shrink-0 transition-transform hover:scale-105"
             />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-base font-bold tracking-tight text-zinc-950 dark:text-white">
+                <span className="text-sm sm:text-base font-bold tracking-tight text-zinc-950 dark:text-white">
                   Delizoo OS
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-none">
+              <p className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-none hidden xs:block">
                 Kakinada Operations
               </p>
             </div>
@@ -110,11 +110,11 @@ export function Navbar({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Mobile Search Toggle */}
             <button
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
+              className="md:hidden p-1.5 sm:p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
               title="Search"
             >
               <Search className="w-4 h-4" />
@@ -125,7 +125,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={onOpenTour}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/90 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/90 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
                 title="What is this for & How to use"
               >
                 <Compass className="w-3.5 h-3.5 text-amber-500" />
@@ -138,7 +138,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label="Toggle Theme"
               >
@@ -175,10 +175,11 @@ export function Navbar({
             {/* Record Expense Button */}
             <button
               onClick={onOpenExpenseModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Record Expense</span>
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Record Expense</span>
+              <span className="sm:hidden">Expense</span>
             </button>
 
             {/* User Profile / Login Button */}
@@ -187,7 +188,7 @@ export function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/90 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer text-xs"
+                  className="flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/90 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer text-xs"
                 >
                   <div className="w-6 h-6 rounded bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold text-[11px] flex items-center justify-center shrink-0">
                     {getInitials(currentUser.name)}
@@ -205,7 +206,7 @@ export function Navbar({
 
                 {/* Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-1.5 w-60 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-2 z-40 text-xs animate-in">
+                  <div className="absolute right-0 mt-1.5 w-60 max-w-[calc(100vw-1.5rem)] rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-2 z-40 text-xs animate-in">
                     <div className="px-3.5 py-2 border-b border-zinc-100 dark:border-zinc-800">
                       <div className="font-bold text-zinc-950 dark:text-white">
                         {currentUser.name}
