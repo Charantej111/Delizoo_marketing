@@ -69,16 +69,19 @@ const DEFAULT_FOUNDER_MAP = {
 
 const DEFAULT_FOUNDER_EMAILS = Object.values(DEFAULT_FOUNDER_MAP);
 
+const GMAIL_USER_DEFAULT = 'pmcareeros@gmail.com';
+const GMAIL_PASS_DEFAULT = 'jtmemfcjgumleyrk';
+
 export async function handleSendEmail(reqBody) {
   const { type, recipient, subject, html, task, expense, config } = reqBody;
 
-  const gmailUser = config?.user || process.env.GMAIL_USER;
-  const gmailPass = config?.pass || process.env.GMAIL_APP_PASSWORD;
+  const gmailUser = config?.user || process.env.GMAIL_USER || GMAIL_USER_DEFAULT;
+  const gmailPass = config?.pass || process.env.GMAIL_APP_PASSWORD || GMAIL_PASS_DEFAULT;
   const senderName = config?.senderName || process.env.GMAIL_SENDER_NAME || 'Delizoo OS';
-  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const appUrl = process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173');
 
   if (!gmailUser || !gmailPass) {
-    const msg = 'Gmail SMTP credentials (GMAIL_USER / GMAIL_APP_PASSWORD) not configured yet in .env';
+    const msg = 'Gmail SMTP credentials (GMAIL_USER / GMAIL_APP_PASSWORD) not configured yet';
     console.warn('[Email Warning]:', msg);
     await logEmailToDb(type || 'UNKNOWN', recipient || 'None', subject || 'No Subject', html || '', 'SKIPPED_NOT_CONFIGURED', msg);
     return {
@@ -513,8 +516,8 @@ export async function handleSendOtp({ email }) {
     );
 
     // 3. Send OTP Email via Gmail SMTP
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    const gmailUser = process.env.GMAIL_USER || GMAIL_USER_DEFAULT;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD || GMAIL_PASS_DEFAULT;
     const senderName = process.env.GMAIL_SENDER_NAME || 'Delizoo OS';
     const transporter = createGmailTransporter(gmailUser, gmailPass);
 

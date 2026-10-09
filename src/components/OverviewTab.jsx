@@ -382,12 +382,16 @@ export function OverviewTab({
               </p>
             </div>
             {setActiveTab && (
-              <button
-                onClick={() => setActiveTab('expenses')}
-                className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
+              <a
+                href="/expenses"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab('expenses');
+                }}
+                className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer no-underline"
               >
                 View all ({expenses.length}) →
-              </button>
+              </a>
             )}
           </div>
 

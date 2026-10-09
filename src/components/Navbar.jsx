@@ -48,10 +48,10 @@ export function Navbar({
   }, []);
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'expenses', label: 'Expenses', icon: Receipt, count: expenseCount },
-    { id: 'kanban', label: 'Tasks', icon: CheckSquare, count: taskCount },
-    { id: 'reports', label: 'Reports & Audit', icon: FileSpreadsheet }
+    { id: 'overview', label: 'Overview', href: '/overview', icon: LayoutDashboard },
+    { id: 'expenses', label: 'Expenses', href: '/expenses', icon: Receipt, count: expenseCount },
+    { id: 'kanban', label: 'Tasks', href: '/tasks', icon: CheckSquare, count: taskCount },
+    { id: 'reports', label: 'Reports & Audit', href: '/reports', icon: FileSpreadsheet }
   ];
 
   const getInitials = (name = '') => {
@@ -68,9 +68,13 @@ export function Navbar({
         <div className="flex items-center justify-between h-15 gap-3 sm:gap-4">
           
           {/* Brand Mark */}
-          <div
-            className="flex items-center gap-3 cursor-pointer shrink-0"
-            onClick={() => setActiveTab('overview')}
+          <a
+            href="/overview"
+            className="flex items-center gap-3 cursor-pointer shrink-0 no-underline text-inherit"
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('overview');
+            }}
           >
             <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-sm shadow-xs">
               D
@@ -85,7 +89,7 @@ export function Navbar({
                 Kakinada Operations
               </p>
             </div>
-          </div>
+          </a>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-sm hidden md:block">
@@ -264,10 +268,14 @@ export function Navbar({
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button
+              <a
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                href={tab.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab(tab.id);
+                }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all cursor-pointer no-underline ${
                   isActive
                     ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-950 dark:text-white font-semibold'
                     : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/40'
@@ -280,7 +288,7 @@ export function Navbar({
                     ({tab.count})
                   </span>
                 )}
-              </button>
+              </a>
             );
           })}
         </nav>

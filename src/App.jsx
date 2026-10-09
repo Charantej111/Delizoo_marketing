@@ -16,8 +16,47 @@ import { storageService, DEFAULT_PARTNERS } from './services/storage';
 import { emailService } from './services/emailService';
 import { authService } from './services/authService';
 
+// SPA Route to Tab mappings for seamless Vercel hosting & deep linking
+const ROUTE_MAP = {
+  '/': 'overview',
+  '/overview': 'overview',
+  '/expenses': 'expenses',
+  '/tasks': 'kanban',
+  '/kanban': 'kanban',
+  '/reports': 'reports',
+  '/audit': 'reports'
+};
+
+const TAB_PAGE_TITLES = {
+  overview: 'Delizoo OS - Executive Dashboard & Operations',
+  expenses: 'Delizoo OS - Capital Ledger & Expenses',
+  kanban: 'Delizoo OS - Task Execution & Kanban',
+  reports: 'Delizoo OS - Audit Reports & Summary'
+};
+
+function getTabFromPath(pathname = '/') {
+  const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  return ROUTE_MAP[clean] || 'overview';
+}
+
+function getPathFromTab(tabId) {
+  switch (tabId) {
+    case 'expenses': return '/expenses';
+    case 'kanban': return '/tasks';
+    case 'reports': return '/reports';
+    case 'overview':
+    default:
+      return '/overview';
+  }
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTabState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getTabFromPath(window.location.pathname);
+    }
+    return 'overview';
+  });
   const [tasks, setTasks] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [partners, setPartners] = useState(DEFAULT_PARTNERS);
@@ -26,6 +65,71 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpendAreaForExpenses, setSelectedSpendAreaForExpenses] = useState('All');
   const [selectedPayerForExpenses, setSelectedPayerForExpenses] = useState('All');
+
+  // URL-synchronized tab navigation
+  const setActiveTab = useCallback((tabId, options = {}) => {
+    const { replace = false, query = {} } = options;
+    setActiveTabState(tabId);
+    if (typeof window !== 'undefined') {
+      const basePath = getPathFromTab(tabId);
+      let fullPath = basePath;
+
+      const urlParams = new URLSearchParams();
+      if (query.payer && query.payer !== 'All') urlParams.set('payer', query.payer);
+      if (query.category && query.category !== 'All') urlParams.set('category', query.category);
+      if (query.q) urlParams.set('q', query.q);
+      const qs = urlParams.toString();
+      if (qs) fullPath += `?${qs}`;
+
+      const currentFullPath = window.location.pathname + window.location.search;
+      if (currentFullPath !== fullPath) {
+        if (replace) {
+          window.history.replaceState({ tab: tabId }, '', fullPath);
+        } else {
+          window.history.pushState({ tab: tabId }, '', fullPath);
+        }
+      }
+      if (TAB_PAGE_TITLES[tabId]) {
+        document.title = TAB_PAGE_TITLES[tabId];
+      }
+    }
+  }, []);
+
+  // Handle browser Back / Forward history navigation and URL search parameters
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Parse initial URL parameters on load
+    const params = new URLSearchParams(window.location.search);
+    const initialPayer = params.get('payer');
+    const initialCategory = params.get('category');
+    const initialQuery = params.get('q');
+    if (initialPayer) setSelectedPayerForExpenses(initialPayer);
+    if (initialCategory) setSelectedSpendAreaForExpenses(initialCategory);
+    if (initialQuery) setSearchQuery(initialQuery);
+
+    const initialTab = getTabFromPath(window.location.pathname);
+    if (TAB_PAGE_TITLES[initialTab]) {
+      document.title = TAB_PAGE_TITLES[initialTab];
+    }
+
+    const handlePopState = () => {
+      const tab = getTabFromPath(window.location.pathname);
+      setActiveTabState(tab);
+      const currentParams = new URLSearchParams(window.location.search);
+      setSelectedPayerForExpenses(currentParams.get('payer') || 'All');
+      setSelectedSpendAreaForExpenses(currentParams.get('category') || 'All');
+      if (currentParams.has('q')) {
+        setSearchQuery(currentParams.get('q'));
+      }
+      if (TAB_PAGE_TITLES[tab]) {
+        document.title = TAB_PAGE_TITLES[tab];
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Dark / Light Theme State
   const [theme, setTheme] = useState(() => {
@@ -273,13 +377,13 @@ export default function App() {
 
   const handleSelectPayerForExpenses = useCallback((payerName) => {
     setSelectedPayerForExpenses(payerName);
-    setActiveTab('expenses');
-  }, []);
+    setActiveTab('expenses', { query: { payer: payerName } });
+  }, [setActiveTab]);
 
   const handleSelectSpendAreaForExpenses = useCallback((spendArea) => {
     setSelectedSpendAreaForExpenses(spendArea);
-    setActiveTab('expenses');
-  }, []);
+    setActiveTab('expenses', { query: { category: spendArea } });
+  }, [setActiveTab]);
 
   const handleViewProof = useCallback((expense) => {
     setProofModalData({ expense });
