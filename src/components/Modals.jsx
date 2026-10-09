@@ -549,12 +549,13 @@ export function ExpenseModal({
   );
 }
 
-// 2. Task Modal (Add / Edit) with Custom Operational Stream / Spend Area support
+// 2. Task Modal (Add / Edit) with Assignee & Task Progress Tracking
 export function TaskModal({
   isOpen,
   onClose,
   onSave,
   taskToEdit,
+  partners = DEFAULT_PARTNERS,
   spendAreas = DEFAULT_SPEND_AREAS,
   onAddSpendArea
 }) {
@@ -564,51 +565,119 @@ export function TaskModal({
     title: '',
     spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
     priority: 'High',
-    assignee: '',
+    assignee: partners[0]?.name || 'N Charan Tej',
     dueDate: '',
     status: 'To Do',
-    checklistText: ''
+    progress: 0,
+    checklistText: '',
+    notes: ''
   });
 
   const [isCustomArea, setIsCustomArea] = useState(false);
   const [customAreaInput, setCustomAreaInput] = useState('');
+  const [isCustomAssignee, setIsCustomAssignee] = useState(false);
+  const [customAssigneeInput, setCustomAssigneeInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       if (taskToEdit) {
         const area = taskToEdit.spendArea || spendAreas[0] || DEFAULT_SPEND_AREAS[0];
-        const isExisting = spendAreas.includes(area);
+        const isExistingArea = spendAreas.includes(area);
+
+        const rawAssignee = taskToEdit.assignee || '';
+        const matchingPartner = partners.find(p =>
+          p.name.toLowerCase() === rawAssignee.toLowerCase() ||
+          normalizePayerName(rawAssignee, partners).toLowerCase() === p.name.toLowerCase()
+        );
+        const isExistingAssignee = !!matchingPartner || !rawAssignee;
+
+        let defaultProg = 0;
+        if (taskToEdit.progress !== undefined && taskToEdit.progress !== null) {
+          defaultProg = Number(taskToEdit.progress);
+        } else if (taskToEdit.status === 'Completed' || taskToEdit.completed) {
+          defaultProg = 100;
+        } else if (Array.isArray(taskToEdit.checklist) && taskToEdit.checklist.length > 0) {
+          const compCount = Array.isArray(taskToEdit.completedItems) ? taskToEdit.completedItems.length : 0;
+          defaultProg = Math.round((compCount / taskToEdit.checklist.length) * 100);
+        } else if (taskToEdit.status === 'In Progress') {
+          defaultProg = 50;
+        } else if (taskToEdit.status === 'In Review') {
+          defaultProg = 80;
+        }
+
         setFormData({
           title: taskToEdit.title || '',
           spendArea: area,
           priority: taskToEdit.priority || 'High',
-          assignee: taskToEdit.assignee || '',
+          assignee: matchingPartner ? matchingPartner.name : (rawAssignee || partners[0]?.name || 'N Charan Tej'),
           dueDate: taskToEdit.dueDate || '',
-          status: taskToEdit.status || 'To Do',
-          checklistText: Array.isArray(taskToEdit.checklist) ? taskToEdit.checklist.join('\n') : ''
+          status: taskToEdit.status || (defaultProg === 100 ? 'Completed' : 'To Do'),
+          progress: defaultProg,
+          checklistText: Array.isArray(taskToEdit.checklist) ? taskToEdit.checklist.join('\n') : '',
+          notes: taskToEdit.notes || ''
         });
-        if (!isExisting && area) {
+
+        if (!isExistingArea && area) {
           setIsCustomArea(true);
           setCustomAreaInput(area);
         } else {
           setIsCustomArea(false);
           setCustomAreaInput('');
         }
+
+        if (!isExistingAssignee && rawAssignee) {
+          setIsCustomAssignee(true);
+          setCustomAssigneeInput(rawAssignee);
+        } else {
+          setIsCustomAssignee(false);
+          setCustomAssigneeInput('');
+        }
       } else {
         setFormData({
           title: '',
           spendArea: spendAreas[0] || DEFAULT_SPEND_AREAS[0],
           priority: 'High',
-          assignee: '',
+          assignee: partners[0]?.name || 'N Charan Tej',
           dueDate: '',
           status: 'To Do',
-          checklistText: ''
+          progress: 0,
+          checklistText: '',
+          notes: ''
         });
         setIsCustomArea(false);
         setCustomAreaInput('');
+        setIsCustomAssignee(false);
+        setCustomAssigneeInput('');
       }
     }
-  }, [isOpen, taskToEdit, spendAreas]);
+  }, [isOpen, taskToEdit, spendAreas, partners]);
+
+  const handleProgressChange = (newVal) => {
+    const val = Math.min(100, Math.max(0, Number(newVal) || 0));
+    let newStatus = formData.status;
+    if (val === 100) {
+      newStatus = 'Completed';
+    } else if (val === 0 && formData.status === 'Completed') {
+      newStatus = 'To Do';
+    } else if (val > 0 && val < 100 && (formData.status === 'To Do' || formData.status === 'Completed')) {
+      newStatus = 'In Progress';
+    }
+    setFormData(prev => ({ ...prev, progress: val, status: newStatus }));
+  };
+
+  const handleStatusChange = (newStatus) => {
+    let newProg = formData.progress;
+    if (newStatus === 'Completed') {
+      newProg = 100;
+    } else if (newStatus === 'To Do' && formData.progress === 100) {
+      newProg = 0;
+    } else if (newStatus === 'In Progress' && (formData.progress === 0 || formData.progress === 100)) {
+      newProg = 50;
+    } else if (newStatus === 'In Review' && (formData.progress === 0 || formData.progress === 100)) {
+      newProg = 80;
+    }
+    setFormData(prev => ({ ...prev, status: newStatus, progress: newProg }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -626,9 +695,16 @@ export function TaskModal({
       }
     }
 
+    const finalAssignee = isCustomAssignee
+      ? (customAssigneeInput.trim() || 'Unassigned')
+      : (formData.assignee || 'Unassigned');
+
     const checklist = formData.checklistText
       ? formData.checklistText.split('\n').map(s => s.trim()).filter(Boolean)
       : [];
+
+    const finalProgress = Number(formData.progress) || 0;
+    const finalStatus = finalProgress === 100 ? 'Completed' : formData.status;
 
     const payload = {
       ...formData,
@@ -636,11 +712,13 @@ export function TaskModal({
       title: formData.title.trim(),
       spendArea: finalSpendArea,
       priority: formData.priority || 'High',
-      assignee: (formData.assignee || '').trim(),
+      assignee: finalAssignee,
       dueDate: formData.dueDate || '',
-      status: formData.status || 'To Do',
-      completed: formData.status === 'Completed',
+      status: finalStatus,
+      progress: finalProgress,
+      completed: finalStatus === 'Completed' || finalProgress === 100,
       checklist,
+      notes: (formData.notes || '').trim(),
       completedItems: taskToEdit ? (taskToEdit.completedItems || []) : []
     };
 
@@ -650,17 +728,23 @@ export function TaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/60 dark:bg-zinc-950/80 backdrop-blur-xs">
-      <div className="glass-modal rounded-3xl max-w-md w-full shadow-2xl p-5 space-y-4 text-xs">
+      <div className="glass-modal rounded-3xl max-w-lg w-full shadow-2xl p-5 space-y-4 text-xs max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-zinc-200/60 dark:border-zinc-800 pb-3">
-          <h3 className="text-base font-black text-zinc-900 dark:text-white">
-            {taskToEdit ? 'Edit Task' : 'Add Milestone Task'}
-          </h3>
+          <div>
+            <h3 className="text-base font-black text-zinc-900 dark:text-white">
+              {taskToEdit ? 'Edit Task & Progress' : 'Create & Assign Task'}
+            </h3>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Assign task to team partner and track completion progress percentage.
+            </p>
+          </div>
           <button onClick={onClose} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Title */}
           <div>
             <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">TASK TITLE *</label>
             <input
@@ -673,6 +757,7 @@ export function TaskModal({
             />
           </div>
 
+          {/* Operational Stream / Spend Area */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block font-bold text-zinc-800 dark:text-zinc-200">OPERATIONAL STREAM / SPEND AREA</label>
@@ -715,15 +800,152 @@ export function TaskModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">ASSIGNEE</label>
+          {/* ASSIGNED TO (Team Partner Selection) */}
+          <div className="space-y-1.5 p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200">ASSIGNED TO</label>
+              <button
+                type="button"
+                onClick={() => setIsCustomAssignee(!isCustomAssignee)}
+                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              >
+                {isCustomAssignee ? 'Choose Partner' : '+ Custom Assignee'}
+              </button>
+            </div>
+
+            {isCustomAssignee ? (
               <input
                 type="text"
-                value={formData.assignee}
-                onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
-                placeholder="e.g. Charan"
-                className="w-full px-3 py-2 glass-input rounded-xl font-semibold text-zinc-800 dark:text-zinc-100 outline-none"
+                required
+                value={customAssigneeInput}
+                onChange={(e) => setCustomAssigneeInput(e.target.value)}
+                placeholder="Type custom assignee name"
+                className="w-full px-3 py-2 glass-input rounded-xl font-bold text-zinc-900 dark:text-white outline-none"
+              />
+            ) : (
+              <div className="space-y-2">
+                <CustomSelect
+                  value={formData.assignee}
+                  onChange={(val) => {
+                    if (val === '__custom__') {
+                      setIsCustomAssignee(true);
+                      setCustomAssigneeInput('');
+                    } else {
+                      setFormData({ ...formData, assignee: val });
+                    }
+                  }}
+                  options={[
+                    ...partners.map(p => ({
+                      value: p.name,
+                      label: p.name,
+                      sublabel: p.role || 'Partner'
+                    })),
+                    { value: '__custom__', label: '+ Type Custom Person...' }
+                  ]}
+                  placeholder="Select team member..."
+                />
+
+                {/* Quick Partner Avatars Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">Quick pick:</span>
+                  {partners.map(p => {
+                    const isSelected = !isCustomAssignee && formData.assignee === p.name;
+                    return (
+                      <button
+                        key={p.id || p.name}
+                        type="button"
+                        onClick={() => {
+                          setIsCustomAssignee(false);
+                          setFormData({ ...formData, assignee: p.name });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-xs scale-105'
+                            : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200/70 dark:border-zinc-700'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color || '#10b981' }} />
+                        <span>{p.name.split(' ')[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* TASK PROGRESS CONTROL (Slider & Preset percentages) */}
+          <div className="space-y-2.5 p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                <span>TASK PROGRESS</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono-num font-bold ${
+                  formData.progress === 100
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
+                    : formData.progress >= 50
+                    ? 'bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-800'
+                    : formData.progress > 0
+                    ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                }`}>
+                  {formData.progress}% Completed
+                </span>
+              </label>
+
+              {/* Quick Presets */}
+              <div className="flex items-center gap-1">
+                {[0, 25, 50, 75, 100].map(pct => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => handleProgressChange(pct)}
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono-num transition-all cursor-pointer ${
+                      formData.progress === pct
+                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Slider Input */}
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={formData.progress}
+              onChange={(e) => handleProgressChange(e.target.value)}
+              className="w-full accent-emerald-500 cursor-pointer"
+            />
+
+            {/* Visual Progress Bar */}
+            <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 rounded-full ${
+                  formData.progress === 100
+                    ? 'bg-emerald-500'
+                    : formData.progress >= 50
+                    ? 'bg-cyan-500'
+                    : formData.progress > 0
+                    ? 'bg-amber-500'
+                    : 'bg-zinc-400'
+                }`}
+                style={{ width: `${formData.progress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">STATUS</label>
+              <CustomSelect
+                value={formData.status}
+                onChange={(val) => handleStatusChange(val)}
+                options={['To Do', 'In Progress', 'In Review', 'Completed']}
               />
             </div>
             <div>
@@ -746,12 +968,23 @@ export function TaskModal({
           </div>
 
           <div>
-            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">SUB-TASKS (ONE PER LINE)</label>
+            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">SUB-TASKS / CHECKLIST (ONE PER LINE)</label>
             <textarea
               rows={2}
               value={formData.checklistText}
               onChange={(e) => setFormData({ ...formData, checklistText: e.target.value })}
               placeholder="Step 1&#10;Step 2&#10;Step 3"
+              className="w-full px-3 py-2 glass-input rounded-xl text-xs leading-relaxed text-zinc-800 dark:text-zinc-100 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-zinc-800 dark:text-zinc-200 mb-1">NOTES & INSTRUCTIONS (OPTIONAL)</label>
+            <textarea
+              rows={2}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Additional details, phone numbers, or vendor contacts..."
               className="w-full px-3 py-2 glass-input rounded-xl text-xs leading-relaxed text-zinc-800 dark:text-zinc-100 outline-none"
             />
           </div>
@@ -768,7 +1001,7 @@ export function TaskModal({
               type="submit"
               className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 font-bold shadow-sm transition-all cursor-pointer"
             >
-              {taskToEdit ? 'Save Changes' : 'Add Task'}
+              {taskToEdit ? 'Save Changes' : 'Create & Assign Task'}
             </button>
           </div>
         </form>

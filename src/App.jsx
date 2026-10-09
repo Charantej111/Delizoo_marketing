@@ -260,6 +260,7 @@ export default function App() {
         {activeTab === 'kanban' && (
           <KanbanTab
             tasks={tasks}
+            partners={partners}
             spendAreas={spendAreas}
             onSaveTask={handleSaveTask}
             onEditTask={(t) => { setTaskToEdit(t); setIsTaskModalOpen(true); }}
@@ -324,6 +325,7 @@ export default function App() {
         onClose={() => setIsTaskModalOpen(false)}
         onSave={handleSaveTask}
         taskToEdit={taskToEdit}
+        partners={partners}
         spendAreas={spendAreas}
         onAddSpendArea={handleAddSpendArea}
       />

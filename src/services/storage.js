@@ -115,7 +115,7 @@ export const storageService = {
   loadAllData() {
     try {
       const projects = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROJECTS) || '[]');
-      const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+      const rawTasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || 'null');
       let rawExpenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
       
       // Load and clean partners list (preserve user's exact partner configuration)
@@ -171,6 +171,28 @@ export const storageService = {
       } else {
         partners = DEFAULT_PARTNERS;
         this.savePartners(partners);
+      }
+
+      // Load and normalize tasks (0% mock data - preserve user's exact localStorage records)
+      let tasks = [];
+      if (rawTasks && Array.isArray(rawTasks)) {
+        tasks = rawTasks.map(t => {
+          let prog = t.progress;
+          if (prog === undefined || prog === null) {
+            if (t.status === 'Completed' || t.completed) prog = 100;
+            else if (Array.isArray(t.checklist) && t.checklist.length > 0) {
+              const compCount = Array.isArray(t.completedItems) ? t.completedItems.length : 0;
+              prog = Math.round((compCount / t.checklist.length) * 100);
+            } else if (t.status === 'In Progress') prog = 50;
+            else if (t.status === 'In Review') prog = 80;
+            else prog = 0;
+          }
+          return {
+            ...t,
+            progress: Math.min(100, Math.max(0, Number(prog) || 0)),
+            assignee: t.assignee || ''
+          };
+        });
       }
 
       // Automatically normalize and update any legacy expense payers in place

@@ -7,7 +7,9 @@ import {
   Eye,
   FileText,
   PieChart,
-  Users
+  Users,
+  CheckSquare,
+  CheckCircle2
 } from 'lucide-react';
 import { DEFAULT_PARTNERS, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 
@@ -89,6 +91,28 @@ export function OverviewTab({
       .sort((a, b) => b.amount - a.amount);
   }, [expenses, totalSpent]);
 
+
+  // Task Progress Metrics
+  const taskMetrics = useMemo(() => {
+    const total = tasks.length;
+    if (total === 0) return { total: 0, completed: 0, inProgress: 0, overallProgress: 0 };
+    let sumProg = 0;
+    let completed = 0;
+    let inProgress = 0;
+    tasks.forEach(t => {
+      let p = Number(t.progress);
+      if (isNaN(p)) p = t.status === 'Completed' ? 100 : 0;
+      sumProg += p;
+      if (t.status === 'Completed' || p === 100) completed += 1;
+      else if (p > 0 || t.status === 'In Progress') inProgress += 1;
+    });
+    return {
+      total,
+      completed,
+      inProgress,
+      overallProgress: Math.round(sumProg / total)
+    };
+  }, [tasks]);
 
   // Recent 5 expenses
   const recentExpenses = useMemo(() => {
@@ -290,6 +314,72 @@ export function OverviewTab({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* SECTION: Task Progress & Milestone Summary */}
+      <div className="glass-panel rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-black text-zinc-900 dark:text-white flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Operational Tasks & Assignee Progress</span>
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Tracking completion progress of milestone tasks assigned across partners.
+            </p>
+          </div>
+          {setActiveTab && (
+            <button
+              onClick={() => setActiveTab('kanban')}
+              className="px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
+            >
+              <span>View Task Board ({tasks.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {tasks.length === 0 ? (
+          <p className="text-xs text-zinc-400 py-4 text-center">
+            No active milestone tasks created yet. Switch to Kanban Board to add your first task.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {/* Metric Banner */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800 text-xs">
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Total Tasks</span>
+                <span className="text-base font-black font-mono-num text-zinc-900 dark:text-white">{taskMetrics.total}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Completed</span>
+                <span className="text-base font-black font-mono-num text-emerald-600 dark:text-emerald-400">{taskMetrics.completed}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">In Progress</span>
+                <span className="text-base font-black font-mono-num text-cyan-600 dark:text-cyan-400">{taskMetrics.inProgress}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Overall Progress</span>
+                <span className="text-base font-black font-mono-num text-zinc-900 dark:text-white">{taskMetrics.overallProgress}%</span>
+              </div>
+            </div>
+
+            {/* Overall Progress Bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-zinc-700 dark:text-zinc-300">Milestone Execution Progress</span>
+                <span className="font-mono-num text-emerald-600 dark:text-emerald-400">{taskMetrics.overallProgress}% Completed</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${taskMetrics.overallProgress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SECTION: Spend by Area & Recent Expenditures */}
