@@ -78,7 +78,7 @@ export async function handleSendEmail(reqBody) {
   const gmailUser = config?.user || process.env.GMAIL_USER || GMAIL_USER_DEFAULT;
   const gmailPass = config?.pass || process.env.GMAIL_APP_PASSWORD || GMAIL_PASS_DEFAULT;
   const senderName = config?.senderName || process.env.GMAIL_SENDER_NAME || 'Delizoo OS';
-  const appUrl = process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173');
+  const appUrl = process.env.APP_URL || 'https://delizoo-os.vercel.app';
 
   if (!gmailUser || !gmailPass) {
     const msg = 'Gmail SMTP credentials (GMAIL_USER / GMAIL_APP_PASSWORD) not configured yet';
@@ -497,7 +497,8 @@ export async function handleSendOtp({ email }) {
       if (!matchKey) {
         return {
           success: false,
-          error: 'Access restricted: This email is not registered as an authorized founding partner of Delizoo OS.'
+          notEligible: true,
+          error: 'This is a private OS, not eligible for login.'
         };
       }
     }

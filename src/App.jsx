@@ -181,6 +181,19 @@ export default function App() {
     }
   }, [partners]);
 
+  // Secured state change listener (e.g. for direct magic link / confirmation redirects)
+  useEffect(() => {
+    const subscription = authService.initAuthStateListener((user) => {
+      if (user) {
+        setCurrentUser(user);
+        setIsLoginModalOpen(false);
+      }
+    });
+    return () => {
+      if (subscription?.unsubscribe) subscription.unsubscribe();
+    };
+  }, []);
+
   const handleLoginSuccess = useCallback((partner) => {
     const session = authService.saveSession(partner);
     setCurrentUser(session);
