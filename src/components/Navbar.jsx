@@ -15,12 +15,13 @@ export function Navbar({
   activeTab,
   setActiveTab,
   onOpenExpenseModal,
+  onOpenTaskModal,
   onOpenPartnerModal,
   searchQuery,
   setSearchQuery,
   expenseCount,
   taskCount,
-  partnerCount = 5,
+  partnerCount = 6,
   theme = 'light',
   toggleTheme
 }) {
@@ -28,120 +29,130 @@ export function Navbar({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'expenses', label: 'Expense Ledger', icon: Receipt, count: expenseCount },
-    { id: 'kanban', label: 'Milestones & Tasks', icon: CheckSquare, count: taskCount },
+    { id: 'expenses', label: 'Expenses', icon: Receipt, count: expenseCount },
+    { id: 'kanban', label: 'Tasks', icon: CheckSquare, count: taskCount },
     { id: 'reports', label: 'Reports & Audit', icon: FileSpreadsheet }
   ];
 
   return (
-    <header className="glass-header sticky top-0 z-30 no-print transition-all">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-3 sm:gap-4">
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-15 gap-4">
           
-          {/* Brand Logo & Title */}
+          {/* Brand Mark */}
           <div
-            className="flex items-center gap-2.5 cursor-pointer shrink-0"
+            className="flex items-center gap-3 cursor-pointer shrink-0"
             onClick={() => setActiveTab('overview')}
           >
-            <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-black flex items-center justify-center text-sm shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-bold flex items-center justify-center text-sm shadow-xs">
               D
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-base font-black tracking-tight text-zinc-900 dark:text-white">
-                  DELIZOO
-                </span>
-                <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
-                  Kakinada
+                <span className="text-base font-bold tracking-tight text-zinc-950 dark:text-white">
+                  Delizoo OS
                 </span>
               </div>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-none">
+                Kakinada Operations
+              </p>
             </div>
           </div>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-sm hidden md:block">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search vendor, payer, UTR, or notes..."
-                className="w-full pl-8.5 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
+                placeholder="Search vendor, payer, UTR, task... (Ctrl+K)"
+                className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/70 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:bg-white dark:focus:bg-zinc-800 focus:border-zinc-900 dark:focus:border-zinc-500 outline-none transition-all"
               />
             </div>
           </div>
 
-          {/* Action Buttons & Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Mobile Search Toggle */}
             <button
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all shrink-0 cursor-pointer"
+              className="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
               title="Search"
             >
               <Search className="w-4 h-4" />
             </button>
 
-            {/* Dark / Light Theme Toggle */}
+            {/* Dark / Light Mode Toggle */}
             {toggleTheme && (
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label="Toggle Theme"
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-emerald-400 hover:rotate-45 transition-transform" />
+                  <Sun className="w-4 h-4" />
                 ) : (
-                  <Moon className="w-4 h-4 text-zinc-700" />
+                  <Moon className="w-4 h-4" />
                 )}
               </button>
             )}
 
-            {/* Founders Pool Button */}
+            {/* Manage Partners */}
             {onOpenPartnerModal && (
               <button
                 onClick={onOpenPartnerModal}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer shadow-2xs shrink-0"
-                title="Manage Founders Capital Pool"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-all cursor-pointer"
               >
-                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <Users className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                 <span>Founders ({partnerCount})</span>
               </button>
             )}
 
-            {/* Log Expense Button */}
+            {/* New Task */}
+            {onOpenTaskModal && (
+              <button
+                onClick={onOpenTaskModal}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-all cursor-pointer"
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                <span>New Task</span>
+              </button>
+            )}
+
+            {/* Record Expense Button */}
             <button
               onClick={onOpenExpenseModal}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span><span className="hidden sm:inline">Record </span>Expense</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Record Expense</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Search Input */}
+        {/* Mobile Search Row */}
         {isMobileSearchOpen && (
-          <div className="md:hidden pb-3 pt-1">
+          <div className="md:hidden pb-3">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search vendor, payer, UTR..."
-                className="w-full pl-8.5 pr-3 py-1.5 text-xs glass-input rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
+                className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 outline-none"
               />
             </div>
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-1.5 scrollbar-none border-t border-zinc-200/60 dark:border-zinc-800/80">
+        {/* Navigation Tabs Bar */}
+        <nav className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none border-t border-zinc-100 dark:border-zinc-800/80">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -149,23 +160,17 @@ export function Navbar({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 font-bold shadow-2xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-zinc-800/70'
+                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-950 dark:text-white font-semibold'
+                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/40'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span
-                    className={`text-[10px] font-mono-num font-bold px-1.5 py-0.2 rounded-full ${
-                      isActive
-                        ? 'bg-white/20 dark:bg-zinc-900/30 text-white dark:text-zinc-950'
-                        : 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
-                    }`}
-                  >
-                    {tab.count}
+                  <span className="text-[11px] font-mono-num text-zinc-400 dark:text-zinc-500 font-normal">
+                    ({tab.count})
                   </span>
                 )}
               </button>

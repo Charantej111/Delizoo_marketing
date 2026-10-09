@@ -271,6 +271,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
+        onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
         onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -344,25 +345,24 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="glass-header py-4 mt-auto no-print border-t border-zinc-200/60 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-zinc-500 dark:text-zinc-400">
+      <footer className="py-5 mt-auto no-print border-t border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/40 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-            <span className="font-extrabold text-zinc-900 dark:text-white">DELIZOO</span>
+            <span className="font-semibold text-zinc-900 dark:text-white">Delizoo OS</span>
             <span>•</span>
-            <span>Kakinada Launch Operations</span>
+            <span>Kakinada Operations</span>
             <span>•</span>
             <a
               href="https://delizoo.in"
               target="_blank"
               rel="noreferrer"
-              className="text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:underline font-semibold"
+              className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline"
             >
               delizoo.in
             </a>
           </div>
-          <div className="flex items-center gap-2 font-mono-num text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Supabase Cloud & Local Sync • Live</span>
+          <div className="text-[11px] text-zinc-400 font-mono-num">
+            Supabase PostgreSQL • Cloud & Local Cache Synced
           </div>
         </div>
       </footer>

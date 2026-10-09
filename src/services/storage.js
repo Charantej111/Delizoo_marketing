@@ -3,12 +3,12 @@
 import { supabase } from './supabase';
 
 export const DEFAULT_PARTNERS = [
-  { id: 'partner-1', name: 'N Charan Tej', role: 'Founder & Lead', email: 'ncharantejaa@gmail.com', investment: 50000, color: '#10b981' },
+  { id: 'partner-1', name: 'N Charan Tej', role: 'Founder & Lead', email: 'ncharantejaa@gmail.com', investment: 20000, color: '#10b981' },
   { id: 'partner-2', name: 'G Pavan', role: 'Partner / Ops', email: 'dev.pavangollapalli@gmail.com', investment: 50000, color: '#06b6d4' },
-  { id: 'partner-3', name: 'G Sunil', role: 'Partner / Growth', email: 'dev.sunilgarbana@gmail.com', investment: 50000, color: '#8b5cf6' },
+  { id: 'partner-3', name: 'G Sunil', role: 'Partner / Growth', email: 'dev.sunilgarbana@gmail.com', investment: 10000, color: '#8b5cf6' },
   { id: 'partner-4', name: 'M Nareen', role: 'Partner / Marketing', email: 'mangamnareenkumar@gmail.com', investment: 50000, color: '#f59e0b' },
-  { id: 'partner-5', name: 'J Sandeep', role: 'Partner / Tech', email: 'jakkasandeep9@gmail.com', investment: 50000, color: '#ec4899' },
-  { id: 'partner-6', name: 'Dheeraj', role: 'Partner / Strategy', email: 'dheerajbathi@gmail.com', investment: 50000, color: '#3b82f6' }
+  { id: 'partner-5', name: 'J Sandeep', role: 'Partner / Tech', email: 'jakkasandeep9@gmail.com', investment: 10000, color: '#ec4899' },
+  { id: 'partner-6', name: 'Dheeraj', role: 'Partner / Strategy', email: 'dheerajbathi@gmail.com', investment: 20000, color: '#3b82f6' }
 ];
 
 export const DEFAULT_SPEND_AREAS = [
@@ -254,7 +254,7 @@ export const storageService = {
           name: p.name,
           role: p.role,
           email: p.email || '',
-          investment: Number(p.investment) || 50000,
+          investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || 0),
           color: p.color || '#10b981'
         }));
         this.savePartners(finalPartners, false);
@@ -265,7 +265,7 @@ export const storageService = {
 
       let finalTasks = localData.tasks;
       if (dbTasks.length > 0) {
-        finalTasks = dbTasks.map(t => ({
+        const dbTasksMapped = dbTasks.map(t => ({
           id: t.id,
           title: t.title,
           spendArea: t.spend_area,
@@ -279,12 +279,30 @@ export const storageService = {
           completedItems: Array.isArray(t.completed_items) ? t.completed_items : [],
           notes: t.notes || ''
         }));
+
+        // Preserve any local existing tasks that haven't synced to DB yet
+        const dbTaskIds = new Set(dbTasksMapped.map(t => t.id));
+        const localOnlyTasks = localData.tasks.filter(t => !dbTaskIds.has(t.id));
+        if (localOnlyTasks.length > 0) {
+          console.log(`[Supabase Sync]: Found ${localOnlyTasks.length} existing local tasks. Syncing to DB...`);
+          for (const lt of localOnlyTasks) {
+            this.saveTaskItem(lt);
+          }
+        }
+
+        finalTasks = [...dbTasksMapped, ...localOnlyTasks];
         this.saveTasks(finalTasks, false);
+      } else if (localData.tasks.length > 0) {
+        // If DB has no tasks yet but local has existing tasks, push them to Supabase
+        console.log(`[Supabase Sync]: Pushing ${localData.tasks.length} existing local tasks to Supabase...`);
+        for (const lt of localData.tasks) {
+          this.saveTaskItem(lt);
+        }
       }
 
       let finalExpenses = localData.expenses;
       if (dbExpenses.length > 0) {
-        finalExpenses = dbExpenses.map(e => ({
+        const dbExpensesMapped = dbExpenses.map(e => ({
           id: e.id,
           amount: Number(e.amount) || 0,
           date: e.date,
@@ -299,7 +317,25 @@ export const storageService = {
           proofDataUrl: e.proof_data_url || null,
           proofName: e.proof_name || null
         }));
+
+        // Preserve any local existing expenses that haven't synced to DB yet
+        const dbExpIds = new Set(dbExpensesMapped.map(e => e.id));
+        const localOnlyExpenses = localData.expenses.filter(e => !dbExpIds.has(e.id));
+        if (localOnlyExpenses.length > 0) {
+          console.log(`[Supabase Sync]: Found ${localOnlyExpenses.length} existing local expenses. Syncing to DB...`);
+          for (const le of localOnlyExpenses) {
+            this.saveExpenseItem(le);
+          }
+        }
+
+        finalExpenses = [...dbExpensesMapped, ...localOnlyExpenses];
         this.saveExpenses(finalExpenses, false);
+      } else if (localData.expenses.length > 0) {
+        // If DB has no expenses yet but local has existing expenses, push them to Supabase
+        console.log(`[Supabase Sync]: Pushing ${localData.expenses.length} existing local expenses to Supabase...`);
+        for (const le of localData.expenses) {
+          this.saveExpenseItem(le);
+        }
       }
 
       const spendAreasSet = new Set(DEFAULT_SPEND_AREAS);
@@ -383,7 +419,7 @@ export const storageService = {
       name: p.name,
       role: p.role,
       email: p.email || null,
-      investment: Number(p.investment) || 50000,
+      investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || 0),
       color: p.color || '#10b981'
     }));
     await supabase.from('partners').upsert(payload);
@@ -610,7 +646,7 @@ export const storageService = {
             name: normalizePayerName(p.name, DEFAULT_PARTNERS) || p.name,
             role: p.role || 'Partner',
             email: p.email || '',
-            investment: Number(p.investment) || 50000,
+            investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || 0),
             color: p.color || '#10b981'
           }));
 

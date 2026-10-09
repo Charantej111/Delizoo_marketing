@@ -5,22 +5,21 @@ import {
   Trash2,
   Edit2,
   Download,
-  IndianRupee,
-  User,
-  RotateCcw,
   Calendar,
   Layers,
-  Tag,
   Users,
+  Search,
+  Filter,
+  RotateCcw,
   FileCheck
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
-import { storageService, DEFAULT_PARTNERS, POPULAR_CATEGORIES, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { storageService, DEFAULT_PARTNERS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 
 export function ExpensesTab({
-  expenses,
+  expenses = [],
   partners = DEFAULT_PARTNERS,
   spendAreas = DEFAULT_SPEND_AREAS,
   onOpenExpenseModal,
@@ -32,28 +31,16 @@ export function ExpensesTab({
   setSelectedSpendArea,
   selectedPayer = 'All',
   setSelectedPayer,
-  searchQuery
+  searchQuery = ''
 }) {
   const [filterPayer, setFilterPayer] = useState(selectedPayer || 'All');
   const [filterSpendArea, setFilterSpendArea] = useState(selectedSpendArea || 'All');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [filterPaymentMode, setFilterPaymentMode] = useState('All');
   const [filterDatePreset, setFilterDatePreset] = useState('All');
   const [filterCustomDate, setFilterCustomDate] = useState('');
+  const [localSearch, setLocalSearch] = useState(searchQuery || '');
   const [sortBy, setSortBy] = useState('date-desc');
 
-  // Dynamically compute all unique spend areas (defaults + customs + from expenses)
-  const allSpendAreas = useMemo(() => {
-    const set = new Set(spendAreas || DEFAULT_SPEND_AREAS);
-    expenses.forEach(e => {
-      if (e.spendArea?.trim()) set.add(e.spendArea.trim());
-      if (e.category?.trim()) set.add(e.category.trim());
-    });
-    return Array.from(set);
-  }, [spendAreas, expenses]);
-
-
-  // Keep internal filter in sync with props
+  // Keep internal filters in sync with parent props
   React.useEffect(() => {
     if (selectedPayer) setFilterPayer(selectedPayer);
   }, [selectedPayer]);
@@ -62,30 +49,33 @@ export function ExpensesTab({
     if (selectedSpendArea) setFilterSpendArea(selectedSpendArea);
   }, [selectedSpendArea]);
 
-  // Combine predefined 6 partners and deduplicate any legacy aliases
+  React.useEffect(() => {
+    if (searchQuery !== undefined) setLocalSearch(searchQuery);
+  }, [searchQuery]);
+
+  // Compute all unique spend areas
+  const allSpendAreas = useMemo(() => {
+    const set = new Set(spendAreas || DEFAULT_SPEND_AREAS);
+    expenses.forEach(e => {
+      if (e.spendArea?.trim()) set.add(e.spendArea.trim());
+      if (e.category?.trim()) set.add(e.category.trim());
+    });
+    return ['All', ...Array.from(set)];
+  }, [spendAreas, expenses]);
+
+  // Unique payers
   const allPayers = useMemo(() => {
     const set = new Set();
     partners.forEach(p => set.add(p.name));
     expenses.forEach(e => {
       if (e.payer?.trim()) {
-        const normalized = normalizePayerName(e.payer, partners);
-        set.add(normalized);
+        set.add(normalizePayerName(e.payer, partners));
       }
     });
     return ['All', ...Array.from(set)];
   }, [partners, expenses]);
 
-  // Dynamically extract unique categories
-  const categories = useMemo(() => {
-    const set = new Set();
-    POPULAR_CATEGORIES.forEach(c => set.add(c.label));
-    expenses.forEach(e => {
-      if (e.category?.trim()) set.add(e.category.trim());
-    });
-    return ['All', ...Array.from(set)];
-  }, [expenses]);
-
-  // Helper for local YYYY-MM-DD date string (prevents UTC timezone skew)
+  // Local date helper
   const getLocalDate = (d = new Date()) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -93,589 +83,356 @@ export function ExpensesTab({
     return `${y}-${m}-${day}`;
   };
 
-  // Dynamic filter
-  const filteredExpenses = expenses.filter(e => {
-    if (filterSpendArea !== 'All') {
-      const area = e.spendArea || e.category || '';
-      if (area.toLowerCase() !== filterSpendArea.toLowerCase()) return false;
-    }
-    
-    if (filterPayer !== 'All') {
-      const normalizedPayer = normalizePayerName(e.payer, partners);
-      if (normalizedPayer.toLowerCase() !== filterPayer.toLowerCase()) return false;
-    }
-
-    if (filterCategory !== 'All' && (e.category || '').trim().toLowerCase() !== filterCategory.toLowerCase()) return false;
-    
-    // Robust payment mode matching
-    if (filterPaymentMode !== 'All') {
-      const mode = (e.paymentMode || '').toLowerCase();
-      const target = filterPaymentMode.toLowerCase();
-      if (!mode.includes(target) && !target.includes(mode)) return false;
-    }
-
-    // Date / Timeframe filter with local timezone safety
-    if (filterDatePreset !== 'All') {
-      const todayStr = getLocalDate(new Date());
-      if (filterDatePreset === 'Today') {
-        if (e.date !== todayStr) return false;
-      } else if (filterDatePreset === '7d') {
-        const limitDate = new Date();
-        limitDate.setDate(limitDate.getDate() - 7);
-        const limitStr = getLocalDate(limitDate);
-        if ((e.date || '') < limitStr) return false;
-      } else if (filterDatePreset === '30d') {
-        const limitDate = new Date();
-        limitDate.setDate(limitDate.getDate() - 30);
-        const limitStr = getLocalDate(limitDate);
-        if ((e.date || '') < limitStr) return false;
-      } else if (filterDatePreset === 'Custom') {
-        if (filterCustomDate && e.date !== filterCustomDate) return false;
+  // Filter expenses
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(e => {
+      if (filterSpendArea !== 'All') {
+        const area = e.spendArea || e.category || '';
+        if (area.toLowerCase() !== filterSpendArea.toLowerCase()) return false;
       }
-    }
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchVendor = (e.vendor || '').toLowerCase().includes(q);
-      const matchPayer = (e.payer || '').toLowerCase().includes(q) || normalizePayerName(e.payer, partners).toLowerCase().includes(q);
-      const matchCategory = (e.category || '').toLowerCase().includes(q);
-      const matchSpendArea = (e.spendArea || '').toLowerCase().includes(q);
-      const matchUtr = (e.utrNumber || '').toLowerCase().includes(q);
-      const matchImpact = (e.howItHelped || '').toLowerCase().includes(q);
-      if (!matchVendor && !matchPayer && !matchCategory && !matchSpendArea && !matchUtr && !matchImpact) return false;
-    }
-    return true;
-  });
+      if (filterPayer !== 'All') {
+        const norm = normalizePayerName(e.payer, partners);
+        if (norm.toLowerCase() !== filterPayer.toLowerCase()) return false;
+      }
 
-  // Sort with 100% reliable datetime comparison
-  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
-    const dtA = `${a.date || '1970-01-01'} ${a.time || '00:00'}`;
-    const dtB = `${b.date || '1970-01-01'} ${b.time || '00:00'}`;
+      if (filterDatePreset !== 'All') {
+        const todayStr = getLocalDate(new Date());
+        if (filterDatePreset === 'Today' && e.date !== todayStr) return false;
+        if (filterDatePreset === '7d') {
+          const limit = new Date();
+          limit.setDate(limit.getDate() - 7);
+          if ((e.date || '') < getLocalDate(limit)) return false;
+        }
+        if (filterDatePreset === '30d') {
+          const limit = new Date();
+          limit.setDate(limit.getDate() - 30);
+          if ((e.date || '') < getLocalDate(limit)) return false;
+        }
+        if (filterDatePreset === 'Custom' && filterCustomDate && e.date !== filterCustomDate) {
+          return false;
+        }
+      }
 
-    if (sortBy === 'date-desc') {
-      return dtB.localeCompare(dtA);
-    }
-    if (sortBy === 'date-asc') {
-      return dtA.localeCompare(dtB);
-    }
-    if (sortBy === 'amount-desc') {
-      return (Number(b.amount) || 0) - (Number(a.amount) || 0);
-    }
-    if (sortBy === 'amount-asc') {
-      return (Number(a.amount) || 0) - (Number(b.amount) || 0);
-    }
-    return 0;
-  });
+      if (localSearch) {
+        const q = localSearch.toLowerCase();
+        const vendor = (e.vendor || '').toLowerCase();
+        const payer = (e.payer || '').toLowerCase();
+        const area = (e.spendArea || e.category || '').toLowerCase();
+        const utr = (e.utrNumber || '').toLowerCase();
+        const notes = (e.howItHelped || '').toLowerCase();
+        if (!vendor.includes(q) && !payer.includes(q) && !area.includes(q) && !utr.includes(q) && !notes.includes(q)) {
+          return false;
+        }
+      }
 
-  const totalFilteredSpent = sortedExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-  const proofCount = sortedExpenses.filter(e => !!e.proofDataUrl).length;
+      return true;
+    });
+  }, [expenses, filterSpendArea, filterPayer, filterDatePreset, filterCustomDate, localSearch, partners]);
 
-  const handlePayerChange = (payer) => {
-    setFilterPayer(payer);
-    if (setSelectedPayer) setSelectedPayer(payer);
+  // Sort
+  const sortedExpenses = useMemo(() => {
+    return [...filteredExpenses].sort((a, b) => {
+      if (sortBy === 'date-desc') {
+        return new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00'));
+      }
+      if (sortBy === 'date-asc') {
+        return new Date(a.date + ' ' + (a.time || '00:00')) - new Date(b.date + ' ' + (b.time || '00:00'));
+      }
+      if (sortBy === 'amount-desc') return Number(b.amount) - Number(a.amount);
+      if (sortBy === 'amount-asc') return Number(a.amount) - Number(b.amount);
+      return 0;
+    });
+  }, [filteredExpenses, sortBy]);
+
+  const totalFilteredSpent = useMemo(() => {
+    return sortedExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+  }, [sortedExpenses]);
+
+  const proofCount = useMemo(() => {
+    return sortedExpenses.filter(e => !!e.proofDataUrl).length;
+  }, [sortedExpenses]);
+
+  const handleResetFilters = () => {
+    setFilterPayer('All');
+    setFilterSpendArea('All');
+    setFilterDatePreset('All');
+    setFilterCustomDate('');
+    setLocalSearch('');
+    if (setSelectedPayer) setSelectedPayer('All');
+    if (setSelectedSpendArea) setSelectedSpendArea('All');
   };
 
-  const handleSpendAreaChange = (area) => {
-    setFilterSpendArea(area);
-    if (setSelectedSpendArea) setSelectedSpendArea(area);
-  };
+  const hasActiveFilters = filterPayer !== 'All' || filterSpendArea !== 'All' || filterDatePreset !== 'All' || localSearch !== '';
 
   return (
-    <div className="space-y-5 sm:space-y-6 pb-12">
-      {/* Financial Metrics Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+    <div className="space-y-5 pb-12">
+      {/* Top Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">
+            Expense Ledger
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Audit-ready log of operational expenditures and receipts.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => storageService.exportCsv(expenses)}
+            disabled={expenses.length === 0}
+            className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={onOpenExpenseModal}
+            className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Log Expense</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3 Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Filtered Total Spent
-          </span>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white">
+          </div>
+          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
             ₹{totalFilteredSpent.toLocaleString('en-IN')}
           </div>
-          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-            {sortedExpenses.length} transactions recorded
+          <div className="mt-1 text-xs text-zinc-400">
+            {sortedExpenses.length} transaction{sortedExpenses.length !== 1 ? 's' : ''}
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Receipt Verification
-          </span>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400">
+          </div>
+          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
             {proofCount} / {sortedExpenses.length}
           </div>
-          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-1 text-xs text-zinc-400">
             {sortedExpenses.length > 0 && proofCount === sortedExpenses.length
-              ? 'All receipts verified'
-              : `${sortedExpenses.length - proofCount} pending receipts`}
+              ? '100% verified with proofs'
+              : `${sortedExpenses.length - proofCount} unattached receipts`}
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 sm:p-5">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Active Filter Scope
-          </span>
-          <div className="text-sm font-bold text-zinc-900 dark:text-white truncate mt-1">
-            {filterPayer !== 'All' ? `Partner: ${filterPayer}` : filterSpendArea !== 'All' ? `Area: ${filterSpendArea}` : 'All Venture Operations'}
           </div>
-          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 font-mono-num">
-            {sortedExpenses.length} transactions shown
+          <div className="text-sm font-semibold text-zinc-900 dark:text-white truncate mt-1">
+            {filterPayer !== 'All' ? filterPayer : filterSpendArea !== 'All' ? filterSpendArea : 'All Operations'}
           </div>
-        </div>
-
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-              Quick Actions
-            </span>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">Export audit ledger or record spend</div>
-          </div>
-          <div className="flex items-center gap-2 mt-3">
-            <button
-              onClick={() => storageService.exportCsv(expenses)}
-              disabled={expenses.length === 0}
-              className="px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>CSV</span>
-            </button>
-            <button
-              onClick={onOpenExpenseModal}
-              className="flex-1 px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all text-center shadow-sm active:scale-[0.98] cursor-pointer"
-            >
-              + Log Expense
-            </button>
+          <div className="mt-1 text-xs text-zinc-400">
+            {hasActiveFilters ? 'Custom filter active' : 'Showing all records'}
           </div>
         </div>
       </div>
 
-      {/* Filter Controls & Quick Partner Chips */}
-      {expenses.length > 0 && (
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4 relative z-20">
-          {/* Quick Partner Filter Chips */}
-          <div className="space-y-2 pb-1 border-b border-zinc-200/60 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Filter by Investor / Partner (Who Paid):
-              </span>
-              {filterPayer !== 'All' && (
-                <button
-                  onClick={() => handlePayerChange('All')}
-                  className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                >
-                  Show All Partners
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {allPayers.map(p => {
-                const isSelected = filterPayer.toLowerCase() === p.toLowerCase();
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => handlePayerChange(p)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
-                        : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
-                    }`}
-                  >
-                    {p === 'All' ? 'All Partners' : p}
-                  </button>
-                );
-              })}
-            </div>
+      {/* Professional Filter Bar */}
+      <div className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              placeholder="Search payee, UTR, note..."
+              className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 outline-none"
+            />
           </div>
 
-          {/* Quick Spend Area Filter Chips */}
-          <div className="space-y-2 pb-1 border-b border-zinc-200/60 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-zinc-400" />
-                Filter by Spend Area (Ads, Printing, Fleet, Logistics):
-              </span>
-              {filterSpendArea !== 'All' && (
-                <button
-                  onClick={() => handleSpendAreaChange('All')}
-                  className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                >
-                  Show All Areas
-                </button>
-              )}
-            </div>
+          {/* Partner / Payer Filter */}
+          <CustomSelect
+            value={filterPayer}
+            onChange={(val) => {
+              setFilterPayer(val);
+              if (setSelectedPayer) setSelectedPayer(val);
+            }}
+            options={allPayers.map(p => ({ value: p, label: p === 'All' ? 'All Partners' : p }))}
+            size="sm"
+          />
 
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleSpendAreaChange('All')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                  filterSpendArea === 'All'
-                    ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
-                    : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
-                }`}
-              >
-                All Spend Areas
-              </button>
-              {allSpendAreas.map(area => {
-                const isSelected = filterSpendArea.toLowerCase() === area.toLowerCase();
-                return (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => handleSpendAreaChange(area)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-zinc-900 dark:bg-emerald-500 text-white dark:text-zinc-950 border-zinc-900 dark:border-emerald-500 font-bold shadow-2xs'
-                        : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700'
-                    }`}
-                  >
-                    {area}
-                  </button>
-                );
-              })}
+          {/* Spend Area Filter */}
+          <CustomSelect
+            value={filterSpendArea}
+            onChange={(val) => {
+              setFilterSpendArea(val);
+              if (setSelectedSpendArea) setSelectedSpendArea(val);
+            }}
+            options={allSpendAreas.map(a => ({ value: a, label: a === 'All' ? 'All Spend Areas' : a }))}
+            size="sm"
+          />
 
-            </div>
-          </div>
+          {/* Date Filter */}
+          <CustomSelect
+            value={filterDatePreset}
+            onChange={(val) => setFilterDatePreset(val)}
+            options={[
+              { value: 'All', label: 'All Dates' },
+              { value: 'Today', label: 'Today' },
+              { value: '7d', label: 'Last 7 Days' },
+              { value: '30d', label: 'Last 30 Days' },
+              { value: 'Custom', label: 'Exact Date...' }
+            ]}
+            size="sm"
+          />
 
-          {/* Multi-parameter Dropdown Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
-            {/* Payment Mode */}
-            <div className="relative z-30">
-              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">PAYMENT MODE</label>
-              <CustomSelect
-                value={filterPaymentMode}
-                onChange={setFilterPaymentMode}
-                size="sm"
-                options={[
-                  { value: 'All', label: 'All Modes' },
-                  { value: 'UPI', label: 'UPI' },
-                  { value: 'Cash', label: 'Cash Voucher' },
-                  { value: 'Bank', label: 'Bank Transfer' },
-                  { value: 'Card', label: 'Card' }
-                ]}
-              />
-            </div>
-
-            {/* Date / Period Filter */}
-            <div className="relative z-20">
-              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">TIMEFRAME</label>
-              <CustomSelect
-                value={filterDatePreset}
-                onChange={(val) => {
-                  setFilterDatePreset(val);
-                  if (val !== 'Custom') setFilterCustomDate('');
-                }}
-                size="sm"
-                options={[
-                  { value: 'All', label: 'All Time' },
-                  { value: 'Today', label: 'Today Only' },
-                  { value: '7d', label: 'Last 7 Days' },
-                  { value: '30d', label: 'Last 30 Days' },
-                  { value: 'Custom', label: 'Specific Date...' }
-                ]}
-              />
-            </div>
-
-            {/* Sort Filter */}
-            <div className="relative z-10">
-              <label className="block text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mb-1">SORT ORDER</label>
-              <CustomSelect
-                value={sortBy}
-                onChange={setSortBy}
-                size="sm"
-                align="right"
-                options={[
-                  { value: 'date-desc', label: 'Date (Newest)' },
-                  { value: 'date-asc', label: 'Date (Oldest)' },
-                  { value: 'amount-desc', label: 'Amount (Highest)' },
-                  { value: 'amount-asc', label: 'Amount (Lowest)' }
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* Custom Date picker */}
-          {filterDatePreset === 'Custom' && (
-            <div className="pt-2 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-800">
-              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Select Date:</span>
-              <div className="w-56">
-                <CustomDatePicker
-                  value={filterCustomDate}
-                  onChange={setFilterCustomDate}
-                  size="sm"
-                  placeholder="Choose date to filter"
-                />
-              </div>
-              {filterCustomDate && (
-                <button
-                  type="button"
-                  onClick={() => setFilterCustomDate('')}
-                  className="text-xs text-rose-500 hover:text-rose-400 font-semibold cursor-pointer"
-                >
-                  Clear date
-                </button>
-              )}
-            </div>
-          )}
-
-          {(filterSpendArea !== 'All' || filterPayer !== 'All' || filterCategory !== 'All' || filterPaymentMode !== 'All' || filterDatePreset !== 'All' || filterCustomDate) && (
-            <div className="pt-1 flex justify-end">
-              <button
-                onClick={() => {
-                  handleSpendAreaChange('All');
-                  handlePayerChange('All');
-                  setFilterCategory('All');
-                  setFilterPaymentMode('All');
-                  setFilterDatePreset('All');
-                  setFilterCustomDate('');
-                }}
-                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline transition-all cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset All Filters</span>
-              </button>
-            </div>
-          )}
+          {/* Sort By */}
+          <CustomSelect
+            value={sortBy}
+            onChange={(val) => setSortBy(val)}
+            options={[
+              { value: 'date-desc', label: 'Date: Newest First' },
+              { value: 'date-asc', label: 'Date: Oldest First' },
+              { value: 'amount-desc', label: 'Amount: High to Low' },
+              { value: 'amount-asc', label: 'Amount: Low to High' }
+            ]}
+            size="sm"
+          />
         </div>
-      )}
 
-      {expenses.length === 0 ? (
+        {/* Custom Date Input (if selected) */}
+        {filterDatePreset === 'Custom' && (
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <span className="text-xs text-zinc-500">Pick date:</span>
+            <div className="w-40">
+              <CustomDatePicker
+                value={filterCustomDate}
+                onChange={setFilterCustomDate}
+                size="sm"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Active Filter Clear link */}
+        {hasActiveFilters && (
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100 dark:border-zinc-800">
+            <span className="text-zinc-500">
+              Showing {sortedExpenses.length} of {expenses.length} records
+            </span>
+            <button
+              onClick={handleResetFilters}
+              className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white font-medium cursor-pointer flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Filters</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Expense Table */}
+      {sortedExpenses.length === 0 ? (
         <EmptyState
-          type="expenses"
-          title="No expenditures logged yet"
-          description="Record each payment with date, spend area, who funded the amount, receipt proof, and business impact."
-          actionText="Log Your First Expense"
-          onAction={onOpenExpenseModal}
+          icon={RotateCcw}
+          title="No expenditures found"
+          description={hasActiveFilters ? "No transactions match your active filters. Try resetting filters." : "No expenses have been recorded yet."}
+          actionLabel={hasActiveFilters ? "Reset Filters" : "Record First Expense"}
+          onAction={hasActiveFilters ? handleResetFilters : onOpenExpenseModal}
         />
       ) : (
-        <>
-          {/* Mobile Card List (< 768px) */}
-          <div className="md:hidden space-y-3">
-            {sortedExpenses.length === 0 ? (
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8">
-                No expenditures match the current filter selection.
-              </p>
-            ) : (
-              sortedExpenses.map(exp => {
-                const canonicalPayer = normalizePayerName(exp.payer, partners);
-                const spendArea = exp.spendArea || exp.category || 'General Operations';
-
-                return (
-                  <div
-                    key={exp.id}
-                    className="glass-panel rounded-2xl p-4 space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-2.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-lg font-black font-mono-num text-zinc-900 dark:text-white truncate">
-                          ₹{Number(exp.amount).toLocaleString('en-IN')}
-                        </div>
-                        <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5 truncate">
-                          {exp.vendor || 'Direct Payee'}
-                        </div>
-                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
-                          {exp.date} {exp.time ? `• ${exp.time}` : ''}
-                        </div>
+        <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Payee / Description</th>
+                  <th className="py-3 px-4">Paid By</th>
+                  <th className="py-3 px-4">Spend Area</th>
+                  <th className="py-3 px-4">Mode</th>
+                  <th className="py-3 px-4 text-center">Receipt</th>
+                  <th className="py-3 px-4 font-mono-num text-right">Amount</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {sortedExpenses.map((e) => (
+                  <tr key={e.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="py-3 px-4 font-mono-num text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                      {e.date}
+                      {e.time && <span className="text-[10px] text-zinc-400 block">{e.time}</span>}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-zinc-950 dark:text-white">
+                        {e.vendor || e.category || 'General Expense'}
                       </div>
-
-                      <span className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700 shrink-0 max-w-[140px] truncate">
-                        {canonicalPayer}
-                      </span>
-                    </div>
-
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 gap-2">
-                      <div className="min-w-0 flex-1 truncate">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{spendArea}</span>
-                        <span className="mx-1">•</span>
-                        <span>{exp.paymentMode || 'UPI'}</span>
-                      </div>
-                      {exp.category && exp.category !== spendArea && (
-                        <span className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium shrink-0 truncate max-w-[120px]">
-                          {exp.category}
-                        </span>
+                      {e.howItHelped && (
+                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 line-clamp-1">
+                          {e.howItHelped}
+                        </div>
                       )}
-                    </div>
-
-                    {exp.howItHelped && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50/70 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-200/50 dark:border-zinc-700 leading-relaxed break-words">
-                        “{exp.howItHelped}”
-                      </p>
-                    )}
-
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {exp.proofDataUrl && (
-                          <button
-                            onClick={() => onViewProof(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs cursor-pointer shrink-0"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
-                            <span>Proof</span>
-                          </button>
-                        )}
-                        {exp.howItHelped && (
-                          <button
-                            onClick={() => onViewImpact(exp)}
-                            className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 cursor-pointer shrink-0"
-                          >
-                            Impact
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
+                      {e.utrNumber && (
+                        <div className="text-[10px] font-mono-num text-zinc-400">
+                          Ref: {e.utrNumber}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                        {normalizePayerName(e.payer, partners)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                      {e.spendArea || e.category || 'General'}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 font-mono-num text-[11px]">
+                      {e.paymentMode || 'UPI'}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {e.proofDataUrl ? (
                         <button
-                          onClick={() => onEditExpense(exp)}
-                          className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                          onClick={() => onViewProof(e)}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>View</span>
+                        </button>
+                      ) : (
+                        <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-mono-num font-bold text-zinc-950 dark:text-white text-right whitespace-nowrap text-xs">
+                      ₹{Number(e.amount).toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => onEditExpense(e)}
+                          className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                          title="Edit"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => onDeleteExpense(exp.id)}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                          onClick={() => onDeleteExpense(e.id)}
+                          className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                          title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Desktop High-Density Table View */}
-          <div className="hidden md:block glass-panel rounded-2xl overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[880px]">
-                <thead className="bg-zinc-100/90 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
-                  <tr>
-                    <th className="py-3 px-4 min-w-[110px]">Date & Time</th>
-                    <th className="py-3 px-4 min-w-[100px]">Amount</th>
-                    <th className="py-3 px-4 min-w-[130px]">Who Paid</th>
-                    <th className="py-3 px-4 min-w-[150px]">Spend Area / Stream</th>
-                    <th className="py-3 px-4 min-w-[150px]">Vendor & Mode</th>
-                    <th className="py-3 px-4 min-w-[90px]">Receipt</th>
-                    <th className="py-3 px-4 min-w-[180px]">Business Impact</th>
-                    <th className="py-3 px-4 text-right min-w-[70px]">Actions</th>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                  {sortedExpenses.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="py-12 text-center text-zinc-400 dark:text-zinc-500">
-                        No expenditures match the current filter selection.
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedExpenses.map(exp => {
-                      const canonicalPayer = normalizePayerName(exp.payer, partners);
-                      const spendArea = exp.spendArea || exp.category || 'General Operations';
-
-                      return (
-                        <tr key={exp.id} className="hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors">
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="font-mono-num font-bold text-zinc-900 dark:text-white">{exp.date}</div>
-                            {exp.time && (
-                              <div className="font-mono-num text-[11px] text-zinc-400 dark:text-zinc-500">{exp.time}</div>
-                            )}
-                          </td>
-
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="text-sm font-black font-mono-num text-zinc-900 dark:text-white">
-                              ₹{Number(exp.amount).toLocaleString('en-IN')}
-                            </div>
-                            {exp.category && exp.category !== spendArea && (
-                              <span className="inline-block mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
-                                {exp.category}
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs border border-zinc-200/80 dark:border-zinc-700">
-                              <User className="w-3 h-3 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                              <span className="truncate max-w-[120px]">{canonicalPayer}</span>
-                            </span>
-                          </td>
-
-                          <td className="py-3.5 px-4 max-w-xs">
-                            <div className="font-bold text-zinc-900 dark:text-white truncate">
-                              {spendArea}
-                            </div>
-                          </td>
-
-                          <td className="py-3.5 px-4">
-                            <div className="font-semibold text-zinc-900 dark:text-white truncate max-w-[160px]">{exp.vendor || 'Direct Payee'}</div>
-                            <div className="font-mono-num text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 truncate max-w-[160px]">
-                              <span>{exp.paymentMode || 'UPI'}</span>
-                              {exp.utrNumber && (
-                                <span className="text-zinc-400 dark:text-zinc-500 truncate"> • {exp.utrNumber}</span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            {exp.proofDataUrl ? (
-                              <button
-                                onClick={() => onViewProof(exp)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 shadow-2xs transition-all cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" />
-                                <span>Proof</span>
-                              </button>
-                            ) : (
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500">No proof</span>
-                            )}
-                          </td>
-
-                          <td className="py-3.5 px-4 max-w-xs">
-                            {exp.howItHelped ? (
-                              <div className="space-y-1">
-                                <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed break-words">
-                                  {exp.howItHelped}
-                                </p>
-                                <button
-                                  onClick={() => onViewImpact(exp)}
-                                  className="text-[11px] font-bold text-zinc-800 dark:text-emerald-400 hover:text-zinc-900 dark:hover:text-emerald-300 underline cursor-pointer"
-                                >
-                                  Read Impact →
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500">No notes</span>
-                            )}
-                          </td>
-
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
-                            <button
-                              onClick={() => onEditExpense(exp)}
-                              className="p-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-3.5 h-3.5 inline" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteExpense(exp.id)}
-                              className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 inline" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
-

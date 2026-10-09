@@ -1,7 +1,7 @@
 @echo off
-title Delizoo Project and Expense Tracker
+title Delizoo OS - Operations, Capital & Growth Suite
 echo =======================================================
-echo   DELIZOO EATS - Project Tracking and Expense Ledger
+echo   DELIZOO OS - Operations, Capital & Growth Suite
 echo   Kakinada (KKD) Operations
 echo =======================================================
 echo.

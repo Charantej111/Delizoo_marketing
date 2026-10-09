@@ -1185,7 +1185,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
     if (isOpen) {
       const initialList = (partners && partners.length > 0 ? partners : DEFAULT_PARTNERS).map(p => ({
         ...p,
-        investment: p.investment !== undefined && p.investment !== null ? p.investment : 50000
+        investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || 0)
       }));
       setPartnerList(initialList);
     }
@@ -1207,7 +1207,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
     const newId = 'partner-' + Date.now();
     setPartnerList(prev => [
       ...prev,
-      { id: newId, name: `Partner ${prev.length + 1}`, role: 'Investor / Partner', email: '', investment: 50000, color: '#10b981' }
+      { id: newId, name: `Partner ${prev.length + 1}`, role: 'Investor / Partner', email: '', investment: 0, color: '#10b981' }
     ]);
   };
 

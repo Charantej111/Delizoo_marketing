@@ -2,22 +2,21 @@ import React, { useMemo } from 'react';
 import {
   Wallet,
   TrendingUp,
-  Coins,
+  Receipt,
+  FileCheck,
+  CheckCircle2,
+  Clock,
   ArrowRight,
   Eye,
-  FileText,
-  PieChart,
-  Users,
-  CheckSquare,
-  CheckCircle2
+  FileText
 } from 'lucide-react';
-import { DEFAULT_PARTNERS, SPEND_AREAS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
+import { DEFAULT_PARTNERS, normalizePayerName } from '../services/storage';
 
 export function OverviewTab({
   tasks = [],
   expenses = [],
   partners = DEFAULT_PARTNERS,
-  spendAreas = DEFAULT_SPEND_AREAS,
+  spendAreas = [],
   onOpenExpenseModal,
   onOpenPartnerModal,
   onSelectPayerForExpenses,
@@ -36,9 +35,15 @@ export function OverviewTab({
   }, [partners]);
 
   const remainingCapitalPool = totalCommittedCapital - totalSpent;
-  const capitalUtilization = totalCommittedCapital > 0 ? Math.min(Math.round((totalSpent / totalCommittedCapital) * 100), 100) : 0;
+  const capitalUtilization = totalCommittedCapital > 0
+    ? Math.round((totalSpent / totalCommittedCapital) * 1000) / 10
+    : 0;
 
-  // Partner Investment and Spend Tracking
+  const proofCount = useMemo(() => {
+    return expenses.filter(e => !!e.proofDataUrl).length;
+  }, [expenses]);
+
+  // Partner Investment and Spend Tracking (strictly respecting exact database allocations)
   const partnerAnalytics = useMemo(() => {
     return partners.map(p => {
       const pExpenses = expenses.filter(e => {
@@ -47,26 +52,23 @@ export function OverviewTab({
       });
 
       const spent = pExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-      const remaining = (Number(p.investment) || 0) - spent;
-      const pctSpent = p.investment > 0 ? Math.min(Math.round((spent / p.investment) * 100), 100) : 0;
+      const allocated = Number(p.investment) || 0;
+      const remaining = allocated - spent;
+      const pctSpent = allocated > 0 ? Math.min(Math.round((spent / allocated) * 100), 100) : 0;
 
-      // Group by spend area for this partner
-      const catMap = {};
-      pExpenses.forEach(e => {
-        const cat = e.spendArea || e.category?.trim() || 'General';
-        catMap[cat] = (catMap[cat] || 0) + (Number(e.amount) || 0);
-      });
-      const topCategories = Object.entries(catMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 2);
+      const parts = p.name.trim().split(/\s+/);
+      const initials = parts.length >= 2
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : p.name.slice(0, 2).toUpperCase();
 
       return {
         ...p,
+        initials,
+        allocated,
         spent,
         remaining,
         pctSpent,
-        txnCount: pExpenses.length,
-        topCategories
+        txnCount: pExpenses.length
       };
     });
   }, [partners, expenses]);
@@ -75,7 +77,7 @@ export function OverviewTab({
   const spendAreaStats = useMemo(() => {
     const map = {};
     expenses.forEach(e => {
-      const area = e.spendArea || e.category?.trim() || 'General Operations';
+      const area = e.spendArea || e.category?.trim() || 'General';
       if (!map[area]) map[area] = { amount: 0, count: 0 };
       map[area].amount += Number(e.amount) || 0;
       map[area].count += 1;
@@ -91,30 +93,18 @@ export function OverviewTab({
       .sort((a, b) => b.amount - a.amount);
   }, [expenses, totalSpent]);
 
-
-  // Task Progress Metrics
-  const taskMetrics = useMemo(() => {
+  // Task Summary
+  const taskSummary = useMemo(() => {
     const total = tasks.length;
-    if (total === 0) return { total: 0, completed: 0, inProgress: 0, overallProgress: 0 };
-    let sumProg = 0;
-    let completed = 0;
-    let inProgress = 0;
-    tasks.forEach(t => {
-      let p = Number(t.progress);
-      if (isNaN(p)) p = t.status === 'Completed' ? 100 : 0;
-      sumProg += p;
-      if (t.status === 'Completed' || p === 100) completed += 1;
-      else if (p > 0 || t.status === 'In Progress') inProgress += 1;
-    });
-    return {
-      total,
-      completed,
-      inProgress,
-      overallProgress: Math.round(sumProg / total)
-    };
+    if (total === 0) return { total: 0, completed: 0, inProgress: 0, toDo: 0, pct: 0 };
+    const completed = tasks.filter(t => t.status === 'Completed').length;
+    const inProgress = tasks.filter(t => t.status === 'In Progress' || t.status === 'In Review').length;
+    const toDo = tasks.filter(t => t.status === 'To Do').length;
+    const pct = Math.round((completed / total) * 100);
+    return { total, completed, inProgress, toDo, pct };
   }, [tasks]);
 
-  // Recent 5 expenses
+  // Recent 6 expenses
   const recentExpenses = useMemo(() => {
     return [...expenses]
       .sort((a, b) => new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00')))
@@ -123,398 +113,304 @@ export function OverviewTab({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Welcome Bar */}
-      <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Clean Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-            Delizoo Kakinada — Capital & Operations
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">
+            Financial & Operational Overview
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Tracking ₹{totalCommittedCapital.toLocaleString('en-IN')} founder capital across marketing, rider fleet, restaurant operations, and verified receipts.
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Real-time expenditure tracking and partner budget utilization for Delizoo Kakinada.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={onOpenPartnerModal}
-            className="px-3.5 py-2 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-800 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer"
           >
-            Manage Capital
+            Adjust Allocations
           </button>
           <button
             onClick={onOpenExpenseModal}
-            className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold transition-all shadow-xs cursor-pointer"
           >
             + Record Expense
           </button>
         </div>
       </div>
 
-      {/* 3 Core Financial Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Capital Pool */}
-        <div className="glass-panel rounded-2xl p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
-            <span className="text-xs font-semibold">Total Capital Pool</span>
-            <Coins className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+      {/* 4 Core Financial Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Committed Capital */}
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+            Total Allocated Budget
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-900 dark:text-white tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{totalCommittedCapital.toLocaleString('en-IN')}
           </div>
-          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
-            <span>{partners.length} Founders</span>
-            <span>Committed Pool</span>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {partners.length} Founding Partners
           </div>
         </div>
 
-        {/* Real Spend */}
-        <div className="glass-panel rounded-2xl p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
-            <span className="text-xs font-semibold">Real Disbursed Spend</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        {/* Real Disbursed Spend */}
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+            Total Disbursed
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400 tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{totalSpent.toLocaleString('en-IN')}
           </div>
-          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
-            <span>{totalCommittedCapital > 0 ? `${capitalUtilization}% utilized` : 'No capital pool'}</span>
-            <span className="font-mono-num">{expenses.length} bills recorded</span>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {capitalUtilization}% of committed pool
           </div>
         </div>
 
-        {/* Available Capital Balance */}
-        <div className="glass-panel rounded-2xl p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
-            <span className="text-xs font-semibold">Available Capital Balance</span>
-            <Wallet className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+        {/* Available Balance */}
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+            Remaining Balance
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono-num tracking-tight ${
-            remainingCapitalPool >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
+          <div className={`text-2xl sm:text-3xl font-bold font-mono-num tracking-tight ${
+            remainingCapitalPool >= 0 ? 'text-zinc-950 dark:text-white' : 'text-rose-600 dark:text-rose-400'
           }`}>
             ₹{remainingCapitalPool.toLocaleString('en-IN')}
           </div>
-          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
-            <span>{remainingCapitalPool >= 0 ? 'Available funds left' : 'Pool exceeded'}</span>
-            <span className={`font-semibold ${remainingCapitalPool >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {totalCommittedCapital > 0 ? `${100 - capitalUtilization}% left` : '—'}
-            </span>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {totalCommittedCapital > 0 ? `${(100 - capitalUtilization).toFixed(1)}% liquid reserve` : '—'}
+          </div>
+        </div>
+
+        {/* Receipts Verified */}
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+            Receipts Attached
+          </div>
+          <div className="text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
+            {proofCount} / {expenses.length}
+          </div>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {expenses.length > 0 ? `${Math.round((proofCount / expenses.length) * 100)}% verified with proofs` : 'No expenses logged'}
           </div>
         </div>
       </div>
 
-      {/* SECTION: 6 Founders Capital Allocation */}
-      <div className="glass-panel rounded-2xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+      {/* SECTION: Partner Budget Allocations */}
+      <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Founders Capital Allocation</span>
+            <h2 className="text-sm sm:text-base font-bold text-zinc-950 dark:text-white">
+              Partner Capital & Budget Allocations
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Committed pool, disbursed spend, and remaining balance for each partner.
+              Live tracking of each partner's assigned capital, disbursed expenditure, and remaining balance.
             </p>
           </div>
-
           <button
             onClick={onOpenPartnerModal}
-            className="self-start sm:self-center text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer"
+            className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
           >
-            Edit Allocations →
+            Manage Pool →
           </button>
         </div>
 
-        {/* 6 Partner Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {partnerAnalytics.map((p) => (
-            <div
-              key={p.id || p.name}
-              className="p-4 rounded-xl bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 space-y-3 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
-            >
-              {/* Partner Name & Role */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate">
-                    {p.name}
-                  </h3>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">{p.role}</p>
-                </div>
-
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${
-                  p.remaining >= 0
-                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
-                }`}>
-                  {p.remaining >= 0 ? `${Math.round((p.remaining / (p.investment || 1)) * 100)}% Available` : 'Exceeded'}
-                </span>
-              </div>
-
-              {/* Financial Metrics */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 min-w-0">
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Committed</span>
-                  <span className="text-[11px] sm:text-xs font-bold font-mono-num text-zinc-900 dark:text-white block truncate">
-                    ₹{p.investment.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 min-w-0">
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Spent</span>
-                  <span className="text-[11px] sm:text-xs font-bold font-mono-num text-zinc-900 dark:text-zinc-300 block truncate">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-4">Partner</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4 font-mono-num">Allocated Budget</th>
+                <th className="py-3 px-4 font-mono-num">Disbursed Spend</th>
+                <th className="py-3 px-4 font-mono-num">Remaining Balance</th>
+                <th className="py-3 px-4 w-44">Utilization</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              {partnerAnalytics.map((p) => (
+                <tr key={p.id || p.name} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-bold text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                        {p.initials}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-zinc-900 dark:text-white text-xs">
+                          {p.name}
+                        </div>
+                        {p.email && (
+                          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
+                            {p.email}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-300 text-xs">
+                    {p.role}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num font-semibold text-zinc-900 dark:text-white text-xs">
+                    ₹{p.allocated.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num text-zinc-700 dark:text-zinc-300 text-xs">
                     ₹{p.spent.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className={`p-2 rounded-lg min-w-0 ${
-                  p.remaining >= 0
-                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-rose-50/70 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
-                }`}>
-                  <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 block truncate">Available</span>
-                  <span className="text-[11px] sm:text-xs font-bold font-mono-num block truncate">
-                    ₹{p.remaining.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-1">
-                <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      p.remaining < 0 ? 'bg-rose-500' : p.pctSpent > 80 ? 'bg-amber-500' : 'bg-emerald-500'
-                    }`}
-                    style={{ width: `${Math.min(p.pctSpent, 100)}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num">
-                  <span>{p.pctSpent}% spent</span>
-                  <span>{p.txnCount} bills paid</span>
-                </div>
-              </div>
-
-              {/* Top Categories Funded */}
-              {p.topCategories.length > 0 ? (
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs gap-2">
-                  <span className="text-zinc-500 dark:text-zinc-400 truncate min-w-0 flex-1">
-                    {p.topCategories.map(([cat, amt]) => `${cat}: ₹${amt.toLocaleString('en-IN')}`).join(', ')}
-                  </span>
-                  {onSelectPayerForExpenses && (
-                    <button
-                      onClick={() => onSelectPayerForExpenses(p.name)}
-                      className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 cursor-pointer text-xs"
-                    >
-                      View Bills →
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-400 dark:text-zinc-500">
-                  No expenditures recorded yet.
-                </div>
-              )}
-
-            </div>
-          ))}
+                    {p.txnCount > 0 && (
+                      <span className="text-[11px] text-zinc-400 ml-1">({p.txnCount})</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num font-semibold text-xs">
+                    <span className={p.remaining >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}>
+                      ₹{p.remaining.toLocaleString('en-IN')}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-mono-num text-zinc-500 dark:text-zinc-400">
+                        <span>{p.pctSpent}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            p.remaining < 0 ? 'bg-rose-500' : 'bg-zinc-900 dark:bg-zinc-300'
+                          }`}
+                          style={{ width: `${Math.min(p.pctSpent, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    {onSelectPayerForExpenses && p.txnCount > 0 ? (
+                      <button
+                        onClick={() => onSelectPayerForExpenses(p.name)}
+                        className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:underline cursor-pointer"
+                      >
+                        View Bills
+                      </button>
+                    ) : (
+                      <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* SECTION: Task Progress & Milestone Summary */}
-      <div className="glass-panel rounded-2xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-black text-zinc-900 dark:text-white flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Operational Tasks & Assignee Progress</span>
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Tracking completion progress of milestone tasks assigned across partners.
-            </p>
-          </div>
-          {setActiveTab && (
-            <button
-              onClick={() => setActiveTab('kanban')}
-              className="px-3.5 py-1.5 rounded-xl bg-zinc-900 dark:bg-emerald-500 hover:bg-zinc-800 dark:hover:bg-emerald-600 text-white dark:text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
-            >
-              <span>View Task Board ({tasks.length})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {tasks.length === 0 ? (
-          <p className="text-xs text-zinc-400 py-4 text-center">
-            No active milestone tasks created yet. Switch to Kanban Board to add your first task.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {/* Metric Banner */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800 text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Total Tasks</span>
-                <span className="text-base font-black font-mono-num text-zinc-900 dark:text-white">{taskMetrics.total}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Completed</span>
-                <span className="text-base font-black font-mono-num text-emerald-600 dark:text-emerald-400">{taskMetrics.completed}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">In Progress</span>
-                <span className="text-base font-black font-mono-num text-cyan-600 dark:text-cyan-400">{taskMetrics.inProgress}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Overall Progress</span>
-                <span className="text-base font-black font-mono-num text-zinc-900 dark:text-white">{taskMetrics.overallProgress}%</span>
-              </div>
-            </div>
-
-            {/* Overall Progress Bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-zinc-700 dark:text-zinc-300">Milestone Execution Progress</span>
-                <span className="font-mono-num text-emerald-600 dark:text-emerald-400">{taskMetrics.overallProgress}% Completed</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                  style={{ width: `${taskMetrics.overallProgress}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SECTION: Spend by Area & Recent Expenditures */}
+      {/* Grid: Spend Breakdown & Recent Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Spend by Operational Area */}
-        <div className="glass-panel rounded-2xl p-5 space-y-4">
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <PieChart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Spend by Operational Area</span>
+              <h3 className="text-sm font-bold text-zinc-950 dark:text-white">
+                Spend by Operational Area
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Marketing, printing, fleet, tech, and ops breakdown</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Expenditures grouped by operational channels.
+              </p>
             </div>
           </div>
 
           {spendAreaStats.length === 0 ? (
-            <p className="text-xs text-zinc-400 py-8 text-center">
+            <p className="text-xs text-zinc-400 py-6 text-center">
               No expenditures recorded yet.
             </p>
           ) : (
             <div className="space-y-3 pt-1">
-              {spendAreaStats.map(c => (
+              {spendAreaStats.map(item => (
                 <div
-                  key={c.area}
-                  onClick={() => onSelectSpendAreaForExpenses && onSelectSpendAreaForExpenses(c.area)}
-                  className={`space-y-1.5 p-2 rounded-xl transition-all ${
-                    onSelectSpendAreaForExpenses
-                      ? 'hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 cursor-pointer'
-                      : ''
-                  }`}
-                  title={onSelectSpendAreaForExpenses ? `Click to filter expenses for ${c.area}` : ''}
+                  key={item.area}
+                  onClick={() => onSelectSpendAreaForExpenses && onSelectSpendAreaForExpenses(item.area)}
+                  className="space-y-1.5 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer"
                 >
-                  <div className="flex justify-between items-center text-xs gap-2">
-                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate min-w-0 flex-1">{c.area}</span>
-                    <div className="font-mono-num space-x-1.5 shrink-0">
-                      <span className="font-bold text-zinc-900 dark:text-white">₹{c.amount.toLocaleString('en-IN')}</span>
-                      <span className="text-zinc-400 dark:text-zinc-500">({c.pct}%)</span>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-zinc-800 dark:text-zinc-200 truncate flex-1">
+                      {item.area}
+                    </span>
+                    <div className="font-mono-num space-x-2 text-right shrink-0">
+                      <span className="font-semibold text-zinc-900 dark:text-white">
+                        ₹{item.amount.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-zinc-400 dark:text-zinc-500 text-[11px]">
+                        ({item.pct}%)
+                      </span>
                     </div>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                      style={{ width: `${c.pct}%` }}
+                      className="h-full rounded-full bg-zinc-800 dark:bg-zinc-300 transition-all"
+                      style={{ width: `${item.pct}%` }}
                     />
                   </div>
                 </div>
               ))}
-
             </div>
           )}
         </div>
 
-        {/* Recent Expenditures Feed */}
-        <div className="glass-panel rounded-2xl p-5 space-y-4">
+        {/* Recent Expenditures */}
+        <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Recent Expenditures</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Latest transactions with receipts & ROI impact</p>
+              <h3 className="text-sm font-bold text-zinc-950 dark:text-white">
+                Recent Expenditures
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Latest transactions logged to the ledger.
+              </p>
             </div>
-            {expenses.length > 0 && (
+            {setActiveTab && (
               <button
                 onClick={() => setActiveTab('expenses')}
-                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 hover:underline cursor-pointer shrink-0"
+                className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
               >
-                <span>All ({expenses.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                View all ({expenses.length}) →
               </button>
             )}
           </div>
 
           {recentExpenses.length === 0 ? (
-            <p className="text-xs text-zinc-400 py-8 text-center">
-              No expenditures recorded yet. Click "+ Record Expense" to log your first payment.
+            <p className="text-xs text-zinc-400 py-6 text-center">
+              No transactions recorded yet.
             </p>
           ) : (
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-              {recentExpenses.map((exp) => {
-                const normalizedPayer = normalizePayerName(exp.payer, partners);
-
-                return (
-                  <div
-                    key={exp.id}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 px-2 rounded-xl transition-colors"
-                  >
-                    <div className="truncate min-w-0 flex-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white truncate min-w-0 flex-1">
-                          {exp.vendor || 'Direct Payee'}
-                        </span>
-                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono-num shrink-0">
-                          {exp.date}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate min-w-0">
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">Paid by: {normalizedPayer}</span>
-                        {' • '}
-                        <span>{exp.category || 'General'}</span>
-                      </p>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {recentExpenses.map(e => (
+                <div key={e.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-zinc-900 dark:text-white truncate">
+                      {e.vendor || e.category || 'General Expense'}
                     </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <div className="text-xs sm:text-sm font-black font-mono-num text-zinc-900 dark:text-white">
-                          ₹{Number(exp.amount).toLocaleString('en-IN')}
-                        </div>
-                        <div className="text-[10px] font-mono-num text-zinc-400 dark:text-zinc-500">
-                          {exp.paymentMode || 'UPI'}
-                        </div>
-                      </div>
-
-                      {exp.proofDataUrl && (
-                        <button
-                          onClick={() => onViewProof(exp)}
-                          className="p-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
-                          title="View Receipt"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {exp.howItHelped && (
-                        <button
-                          onClick={() => onViewImpact(exp)}
-                          className="p-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
-                          title="View Notes & Impact"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                    <div className="text-[11px] text-zinc-400 dark:text-zinc-500 flex items-center gap-2 mt-0.5">
+                      <span>{e.date}</span>
+                      <span>•</span>
+                      <span>{normalizePayerName(e.payer)}</span>
+                      <span>•</span>
+                      <span className="truncate">{e.spendArea || e.category}</span>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-bold font-mono-num text-zinc-900 dark:text-white text-xs">
+                      ₹{Number(e.amount).toLocaleString('en-IN')}
+                    </span>
+                    {e.proofDataUrl && onViewProof && (
+                      <button
+                        onClick={() => onViewProof(e)}
+                        className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        title="View Receipt"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

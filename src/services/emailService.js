@@ -76,22 +76,6 @@ export const emailService = {
     });
   },
 
-  // Test email delivery
-  async sendTestEmail(recipientEmail) {
-    return await this.sendEmail({
-      type: 'CUSTOM',
-      recipient: recipientEmail,
-      subject: '[Delizoo Alert] Gmail SMTP Test Verification',
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 12px;">
-          <h2 style="color: #10b981; margin: 0 0 10px;">Delizoo Gmail SMTP Connected!</h2>
-          <p style="color: #374151;">Your Gmail SMTP backend service is successfully connected to Delizoo Marketing & Operations Tracker.</p>
-          <p style="color: #6b7280; font-size: 12px;">Timestamp: ${new Date().toLocaleString()}</p>
-        </div>
-      `
-    });
-  },
-
   // Fetch email audit logs from Supabase
   async getEmailLogs() {
     try {
