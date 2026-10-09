@@ -1207,7 +1207,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
     const newId = 'partner-' + Date.now();
     setPartnerList(prev => [
       ...prev,
-      { id: newId, name: `Partner ${prev.length + 1}`, role: 'Investor / Partner', investment: 50000, color: '#10b981' }
+      { id: newId, name: `Partner ${prev.length + 1}`, role: 'Investor / Partner', email: '', investment: 50000, color: '#10b981' }
     ]);
   };
 
@@ -1231,6 +1231,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
       ...p,
       name: (p.name || '').trim(),
       role: (p.role || 'Partner').trim(),
+      email: (p.email || '').trim(),
       investment: Number(p.investment) || 0
     }));
     onSavePartners(formatted);
@@ -1307,7 +1308,7 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
                       ROLE / DESIGNATION
@@ -1317,6 +1318,18 @@ export function PartnerModal({ isOpen, onClose, partners, onSavePartners }) {
                       value={p.role}
                       onChange={(e) => handleUpdate(idx, 'role', e.target.value)}
                       placeholder="e.g. Lead, Marketing, Tech"
+                      className="w-full text-[11px] font-medium text-zinc-800 dark:text-zinc-200 glass-input px-2.5 py-1 rounded-lg outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
+                      EMAIL (FOR GMAIL ALERTS)
+                    </label>
+                    <input
+                      type="email"
+                      value={p.email || ''}
+                      onChange={(e) => handleUpdate(idx, 'email', e.target.value)}
+                      placeholder="partner@gmail.com"
                       className="w-full text-[11px] font-medium text-zinc-800 dark:text-zinc-200 glass-input px-2.5 py-1 rounded-lg outline-none"
                     />
                   </div>

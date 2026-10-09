@@ -12,6 +12,7 @@ import {
   PartnerModal
 } from './components/Modals';
 import { storageService, DEFAULT_PARTNERS } from './services/storage';
+import { emailService } from './services/emailService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -61,14 +62,48 @@ export default function App() {
   const [proofModalData, setProofModalData] = useState(null); // { expense }
   const [impactModalData, setImpactModalData] = useState(null); // { expense }
 
-  // Load from local storage
+  // Load from local storage immediately, then 2-way sync with Supabase Cloud
   useEffect(() => {
+    // 1. Instant local load
     const data = storageService.loadAllData();
     setTasks(data.tasks || []);
     setExpenses(data.expenses || []);
     setPartners(data.partners || DEFAULT_PARTNERS);
     setSpendAreas(data.spendAreas || []);
     setIsLoaded(true);
+
+    // 2. Fetch live records from Supabase PostgreSQL & auto-push any existing local records
+    storageService.syncWithSupabase((synced) => {
+      if (synced) {
+        if (synced.tasks) setTasks(synced.tasks);
+        if (synced.expenses) setExpenses(synced.expenses);
+        if (synced.partners && synced.partners.length > 0) setPartners(synced.partners);
+        if (synced.spendAreas && synced.spendAreas.length > 0) setSpendAreas(synced.spendAreas);
+      }
+    });
+
+    // 3. Realtime Supabase listener across team members
+    const unsubscribe = storageService.subscribeToRealtime(
+      () => {
+        storageService.syncWithSupabase(synced => {
+          if (synced?.tasks) setTasks(synced.tasks);
+        });
+      },
+      () => {
+        storageService.syncWithSupabase(synced => {
+          if (synced?.expenses) setExpenses(synced.expenses);
+        });
+      },
+      () => {
+        storageService.syncWithSupabase(synced => {
+          if (synced?.partners) setPartners(synced.partners);
+        });
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Keyboard shortcut Ctrl+K to search
@@ -84,8 +119,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Save Handlers
+  // Save Handlers with Supabase cloud persistence & Gmail notifications
   const handleSaveExpense = useCallback((expense) => {
+    const isNew = !expenses.some(e => e.id === expense.id);
+
     setExpenses(prev => {
       const idx = prev.findIndex(e => e.id === expense.id);
       let updated;
@@ -99,10 +136,18 @@ export default function App() {
       return updated;
     });
 
+    // Push item to Supabase PostgreSQL database
+    storageService.saveExpenseItem(expense);
+
+    // Send email alert to founders via Gmail SMTP when expense is recorded
+    if (isNew) {
+      emailService.sendExpenseLoggedAlert(expense, partners);
+    }
+
     if (expense.spendArea) {
       handleAddSpendArea(expense.spendArea);
     }
-  }, []);
+  }, [expenses, partners]);
 
   const handleDeleteExpense = useCallback((id) => {
     if (confirm('Delete this expenditure record?')) {
@@ -111,10 +156,15 @@ export default function App() {
         storageService.saveExpenses(updated);
         return updated;
       });
+      // Delete from Supabase
+      storageService.deleteExpenseItem(id);
     }
   }, []);
 
   const handleSaveTask = useCallback((task) => {
+    const existing = tasks.find(t => t.id === task.id);
+    const isNewOrReassigned = (!existing && task.assignee) || (existing && task.assignee && existing.assignee !== task.assignee);
+
     setTasks(prev => {
       const idx = prev.findIndex(t => t.id === task.id);
       let updated;
@@ -128,10 +178,18 @@ export default function App() {
       return updated;
     });
 
+    // Push item to Supabase PostgreSQL database
+    storageService.saveTaskItem(task);
+
+    // Send email alert to assigned partner via Gmail SMTP if new or reassigned
+    if (isNewOrReassigned) {
+      emailService.sendTaskAssignedAlert(task, partners);
+    }
+
     if (task.spendArea) {
       handleAddSpendArea(task.spendArea);
     }
-  }, []);
+  }, [tasks, partners]);
 
   const handleDeleteTask = useCallback((id) => {
     if (confirm('Delete this task?')) {
@@ -140,6 +198,8 @@ export default function App() {
         storageService.saveTasks(updated);
         return updated;
       });
+      // Delete from Supabase
+      storageService.deleteTaskItem(id);
     }
   }, []);
 
@@ -301,8 +361,8 @@ export default function App() {
             </a>
           </div>
           <div className="flex items-center gap-2 font-mono-num text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Private Local Storage</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Supabase Cloud & Local Sync • Live</span>
           </div>
         </div>
       </footer>

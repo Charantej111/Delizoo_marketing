@@ -6,7 +6,7 @@ echo   Kakinada (KKD) Operations
 echo =======================================================
 echo.
 echo Starting Vite Dev Server (React + Tailwind CSS)...
-echo All data is stored privately on this device in LocalStorage.
+echo Connected to Supabase Cloud PostgreSQL and Gmail SMTP Dispatcher.
 echo.
 
 npm run dev
