@@ -17,6 +17,7 @@ import { emailService } from './services/emailService';
 import { authService } from './services/authService';
 import { FullScreenAuth } from './components/FullScreenAuth';
 import { ProductTourModal } from './components/ProductTourModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // SPA Route to Tab mappings for seamless Vercel hosting & deep linking
 const ROUTE_MAP = {
@@ -528,68 +529,70 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-5 sm:pt-6">
-        {(activeTab === 'overview' || activeTab === 'guide') && (
-          <OverviewTab
-            tasks={tasks}
-            expenses={expenses}
-            partners={partners}
-            spendAreas={spendAreas}
-            onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-            onOpenPartnerModal={handleOpenPartnerModal}
-            onOpenTour={() => setIsTourOpen(true)}
-            onSelectPayerForExpenses={handleSelectPayerForExpenses}
-            onSelectSpendAreaForExpenses={handleSelectSpendAreaForExpenses}
-            onViewProof={handleViewProof}
-            onViewImpact={handleViewImpact}
-            setActiveTab={setActiveTab}
-            currentUser={currentUser}
-          />
-        )}
+        <ErrorBoundary onReset={() => setActiveTab('overview')}>
+          {(activeTab === 'overview' || activeTab === 'guide') && (
+            <OverviewTab
+              tasks={tasks}
+              expenses={expenses}
+              partners={partners}
+              spendAreas={spendAreas}
+              onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
+              onOpenPartnerModal={handleOpenPartnerModal}
+              onOpenTour={() => setIsTourOpen(true)}
+              onSelectPayerForExpenses={handleSelectPayerForExpenses}
+              onSelectSpendAreaForExpenses={handleSelectSpendAreaForExpenses}
+              onViewProof={handleViewProof}
+              onViewImpact={handleViewImpact}
+              setActiveTab={setActiveTab}
+              currentUser={currentUser}
+            />
+          )}
 
-        {activeTab === 'expenses' && (
-          <ExpensesTab
-            expenses={expenses}
-            partners={partners}
-            spendAreas={spendAreas}
-            onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
-            onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
-            onDeleteExpense={handleDeleteExpense}
-            onViewProof={handleViewProof}
-            onViewImpact={handleViewImpact}
-            selectedSpendArea={selectedSpendAreaForExpenses}
-            setSelectedSpendArea={setSelectedSpendAreaForExpenses}
-            selectedPayer={selectedPayerForExpenses}
-            setSelectedPayer={setSelectedPayerForExpenses}
-            searchQuery={searchQuery}
-            currentUser={currentUser}
-          />
-        )}
+          {activeTab === 'expenses' && (
+            <ExpensesTab
+              expenses={expenses}
+              partners={partners}
+              spendAreas={spendAreas}
+              onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
+              onEditExpense={(e) => { setExpenseToEdit(e); setIsExpenseModalOpen(true); }}
+              onDeleteExpense={handleDeleteExpense}
+              onViewProof={handleViewProof}
+              onViewImpact={handleViewImpact}
+              selectedSpendArea={selectedSpendAreaForExpenses}
+              setSelectedSpendArea={setSelectedSpendAreaForExpenses}
+              selectedPayer={selectedPayerForExpenses}
+              setSelectedPayer={setSelectedPayerForExpenses}
+              searchQuery={searchQuery}
+              currentUser={currentUser}
+            />
+          )}
 
-        {activeTab === 'kanban' && (
-          <KanbanTab
-            tasks={tasks}
-            partners={partners}
-            spendAreas={spendAreas}
-            onSaveTask={handleSaveTask}
-            onEditTask={(t) => { setTaskToEdit(t); setIsTaskModalOpen(true); }}
-            onDeleteTask={handleDeleteTask}
-            onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
-            searchQuery={searchQuery}
-            currentUser={currentUser}
-          />
-        )}
+          {activeTab === 'kanban' && (
+            <KanbanTab
+              tasks={tasks}
+              partners={partners}
+              spendAreas={spendAreas}
+              onSaveTask={handleSaveTask}
+              onEditTask={(t) => { setTaskToEdit(t); setIsTaskModalOpen(true); }}
+              onDeleteTask={handleDeleteTask}
+              onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
+              searchQuery={searchQuery}
+              currentUser={currentUser}
+            />
+          )}
 
-        {activeTab === 'reports' && (
-          <ReportsTab
-            tasks={tasks}
-            expenses={expenses}
-            partners={partners}
-            spendAreas={spendAreas}
-            onOpenPartnerModal={handleOpenPartnerModal}
-            onClearData={handleClearData}
-            onImportComplete={handleImportComplete}
-          />
-        )}
+          {activeTab === 'reports' && (
+            <ReportsTab
+              tasks={tasks}
+              expenses={expenses}
+              partners={partners}
+              spendAreas={spendAreas}
+              onOpenPartnerModal={handleOpenPartnerModal}
+              onClearData={handleClearData}
+              onImportComplete={handleImportComplete}
+            />
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}
