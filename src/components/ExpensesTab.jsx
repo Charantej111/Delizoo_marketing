@@ -198,49 +198,64 @@ export function ExpensesTab({
         </div>
       </div>
 
-      {/* 3 Summary Stats */}
+      {/* 3 Summary Stats - Fintech Sleek Layout */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-            Filtered Total Spent
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Filtered Spend
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
+          <div className="mt-1.5 text-2xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{totalFilteredSpent.toLocaleString('en-IN')}
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
-            {sortedExpenses.length} transaction{sortedExpenses.length !== 1 ? 's' : ''}
+          <div className="mt-2 text-xs text-zinc-400 font-mono-num">
+            {sortedExpenses.length} transaction{sortedExpenses.length !== 1 ? 's' : ''} logged
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-            Receipt Verification
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Receipt Verification
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <FileCheck className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
-            {proofCount} / {sortedExpenses.length}
+          <div className="mt-1.5 text-2xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
+            {proofCount} <span className="text-base text-zinc-400 font-normal">/ {sortedExpenses.length}</span>
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-zinc-400">
             {sortedExpenses.length > 0 && proofCount === sortedExpenses.length
               ? '100% verified with proofs'
-              : `${sortedExpenses.length - proofCount} unattached receipts`}
+              : `${sortedExpenses.length - proofCount} pending receipts`}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-            Active Filter Scope
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Active Scope
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+              <Filter className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-sm font-semibold text-zinc-900 dark:text-white truncate mt-1">
+          <div className="mt-1.5 text-base font-bold text-zinc-900 dark:text-white truncate">
             {filterPayer !== 'All' ? filterPayer : filterSpendArea !== 'All' ? filterSpendArea : 'All Operations'}
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
-            {hasActiveFilters ? 'Custom filter active' : 'Showing all records'}
+          <div className="mt-2 text-xs text-zinc-400">
+            {hasActiveFilters ? 'Filtered results active' : 'Showing complete ledger'}
           </div>
         </div>
       </div>
 
       {/* Professional Filter Bar */}
-      <div className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-3">
+      <div className="card-modern p-3.5 sm:p-4 rounded-2xl space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search Input */}
           <div className="relative">
@@ -250,7 +265,7 @@ export function ExpensesTab({
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="Search payee, UTR, note..."
-              className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 outline-none"
+              className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-500 transition-all"
             />
           </div>
 
@@ -351,7 +366,7 @@ export function ExpensesTab({
             {sortedExpenses.map((e) => (
               <div
                 key={e.id}
-                className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2.5 shadow-2xs"
+                className="card-modern p-4 rounded-2xl space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -368,7 +383,7 @@ export function ExpensesTab({
                     <div className="font-bold font-mono-num text-zinc-950 dark:text-white text-base">
                       ₹{Number(e.amount).toLocaleString('en-IN')}
                     </div>
-                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 mt-0.5">
+                    <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 mt-0.5">
                       {e.paymentMode || 'UPI'}
                     </span>
                   </div>
@@ -380,7 +395,7 @@ export function ExpensesTab({
                   </p>
                 )}
 
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 text-[11px] truncate mr-2">
                     <span className="text-zinc-400 shrink-0">Paid by:</span>
                     <span className="font-semibold truncate">{normalizePayerName(e.payer, partners)}</span>
@@ -395,7 +410,7 @@ export function ExpensesTab({
                       return (
                         <button
                           onClick={() => onViewProof(e)}
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold cursor-pointer ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold cursor-pointer ${
                             isPdf
                               ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 hover:bg-rose-100'
                               : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100'
@@ -408,14 +423,14 @@ export function ExpensesTab({
                     })()}
                     <button
                       onClick={() => onEditExpense(e)}
-                      className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                       title="Edit"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => onDeleteExpense(e.id)}
-                      className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -427,89 +442,91 @@ export function ExpensesTab({
           </div>
 
           {/* Desktop Table (md and up) */}
-          <div className="hidden md:block rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
+          <div className="hidden md:block card-modern rounded-2xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Payee / Description</th>
-                    <th className="py-3 px-4">Paid By</th>
-                    <th className="py-3 px-4">Spend Area</th>
-                    <th className="py-3 px-4">Mode</th>
-                    <th className="py-3 px-4 text-center">Receipt</th>
-                    <th className="py-3 px-4 font-mono-num text-right">Amount</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                  <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4">Payee / Description</th>
+                    <th className="py-3.5 px-4">Paid By</th>
+                    <th className="py-3.5 px-4">Spend Area</th>
+                    <th className="py-3.5 px-4">Mode</th>
+                    <th className="py-3.5 px-4 text-center">Receipt</th>
+                    <th className="py-3.5 px-4 font-mono-num text-right">Amount</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
                   {sortedExpenses.map((e) => (
                     <tr key={e.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                      <td className="py-3 px-4 font-mono-num text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono-num text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
                         {e.date}
                         {e.time && <span className="text-[10px] text-zinc-400 block">{e.time}</span>}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <div className="font-semibold text-zinc-950 dark:text-white">
                           {e.vendor || e.category || 'General Expense'}
                         </div>
                         {e.howItHelped && (
-                          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 line-clamp-1">
+                          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 line-clamp-1 mt-0.5">
                             {e.howItHelped}
                           </div>
                         )}
                         {e.utrNumber && (
-                          <div className="text-[10px] font-mono-num text-zinc-400">
+                          <div className="text-[10px] font-mono-num text-zinc-400 mt-0.5">
                             Ref: {e.utrNumber}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="font-medium text-zinc-800 dark:text-zinc-200">
                           {normalizePayerName(e.payer, partners)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
-                        {e.spendArea || e.category || 'General'}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                          {e.spendArea || e.category || 'General'}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 font-mono-num text-[11px]">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 font-mono-num text-[11px]">
                         {e.paymentMode || 'UPI'}
                       </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         {e.proofDataUrl ? (() => {
                           const isPdf = e.proofType === 'application/pdf' || e.proofName?.toLowerCase().endsWith('.pdf') || e.proofDataUrl.startsWith('data:application/pdf');
                           return (
                             <button
                               onClick={() => onViewProof(e)}
-                              className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold cursor-pointer transition-all ${
                                 isPdf
-                                  ? 'text-rose-600 dark:text-rose-400 hover:text-rose-700'
-                                  : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white'
+                                  ? 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40'
+                                  : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40'
                               }`}
                             >
-                              {isPdf ? <FileText className="w-3.5 h-3.5 text-rose-500" /> : <Eye className="w-3.5 h-3.5 text-zinc-500" />}
-                              <span>{isPdf ? 'PDF' : 'View'}</span>
+                              {isPdf ? <FileText className="w-3 h-3 text-rose-500" /> : <Eye className="w-3 h-3 text-emerald-500" />}
+                              <span>{isPdf ? 'PDF Receipt' : 'View Image'}</span>
                             </button>
                           );
                         })() : (
                           <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-mono-num font-bold text-zinc-950 dark:text-white text-right whitespace-nowrap text-xs">
+                      <td className="py-3.5 px-4 font-mono-num font-bold text-zinc-950 dark:text-white text-right whitespace-nowrap text-xs">
                         ₹{Number(e.amount).toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => onEditExpense(e)}
-                            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                             title="Edit"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => onDeleteExpense(e.id)}
-                            className="p-1 rounded text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

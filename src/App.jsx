@@ -565,7 +565,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="py-5 mt-auto no-print border-t border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/40 text-xs text-zinc-500 dark:text-zinc-400">
+      <footer className="py-5 mt-auto no-print border-t border-zinc-200/60 dark:border-zinc-800/60 bg-white/30 dark:bg-zinc-950/30 text-xs text-zinc-500 dark:text-zinc-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
             <img src="/logo.png" alt="Delizoo Logo" className="w-4 h-4 object-contain" />
@@ -577,13 +577,14 @@ export default function App() {
               href="https://delizoo.in"
               target="_blank"
               rel="noreferrer"
-              className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline"
+              className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline"
             >
               delizoo.in
             </a>
           </div>
-          <div className="text-[11px] text-zinc-400 font-mono-num">
-            Supabase  • Cloud & Local Cache Synced
+          <div className="text-[11px] text-zinc-400 font-mono-num flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Supabase Cloud Sync Active</span>
           </div>
         </div>
       </footer>

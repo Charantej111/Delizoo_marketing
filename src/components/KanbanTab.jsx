@@ -161,7 +161,7 @@ export function KanbanTab({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+      <div className="card-modern p-3.5 sm:p-4 rounded-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -170,7 +170,7 @@ export function KanbanTab({
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="Search task title, assignee, stream..."
-              className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 outline-none"
+              className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-500 transition-all"
             />
           </div>
 
@@ -194,25 +194,33 @@ export function KanbanTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
         {columns.map(col => {
           const colTasks = filteredTasks.filter(t => t.status === col.id);
+          const colColor = col.id === 'Completed'
+            ? 'bg-emerald-500'
+            : col.id === 'In Review'
+              ? 'bg-indigo-500'
+              : col.id === 'In Progress'
+                ? 'bg-amber-500'
+                : 'bg-zinc-400';
 
           return (
             <div
               key={col.id}
-              className="rounded-xl bg-zinc-50/70 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 flex flex-col min-h-36 sm:min-h-120"
+              className="rounded-2xl bg-zinc-100/50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 flex flex-col min-h-36 sm:min-h-120"
             >
               {/* Column Header */}
-              <div className="p-3.5 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+              <div className="p-3.5 border-b border-zinc-200/70 dark:border-zinc-800/70 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-xs text-zinc-900 dark:text-white uppercase tracking-wider">
+                  <span className={`w-2 h-2 rounded-full ${colColor}`} />
+                  <h2 className="font-bold text-xs text-zinc-900 dark:text-white uppercase tracking-wider">
                     {col.label}
                   </h2>
-                  <span className="text-[11px] font-mono-num text-zinc-400">
+                  <span className="text-[11px] font-mono-num font-medium text-zinc-400 bg-white dark:bg-zinc-800 px-1.5 py-0.2 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
                     {colTasks.length}
                   </span>
                 </div>
                 <button
                   onClick={onOpenTaskModal}
-                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
                   title="Add Task to this column"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -222,7 +230,7 @@ export function KanbanTab({
               {/* Column Cards */}
               <div className="p-2.5 space-y-2.5 flex-1">
                 {colTasks.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-zinc-400">
+                  <div className="py-12 text-center text-xs text-zinc-400">
                     No tasks
                   </div>
                 ) : (
@@ -234,7 +242,7 @@ export function KanbanTab({
                     return (
                       <div
                         key={task.id}
-                        className="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2.5 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
+                        className="card-modern card-hover p-3.5 rounded-xl space-y-2.5 shadow-2xs"
                       >
                         {/* Task Title & Action */}
                         <div className="flex items-start justify-between gap-2">
@@ -272,16 +280,18 @@ export function KanbanTab({
 
                         {/* Stream / Spend Area */}
                         {task.spendArea && (
-                          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                            {task.spendArea}
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                              {task.spendArea}
+                            </span>
                           </div>
                         )}
 
                         {/* Progress Bar & Slider */}
-                        <div className="space-y-1 pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+                        <div className="space-y-1.5 pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80">
                           <div className="flex items-center justify-between text-[10px] font-mono-num text-zinc-500 dark:text-zinc-400">
                             <span>Progress</span>
-                            <span className="font-semibold">{progressVal}%</span>
+                            <span className="font-bold">{progressVal}%</span>
                           </div>
                           <input
                             type="range"
@@ -291,7 +301,7 @@ export function KanbanTab({
                             value={progressVal}
                             disabled={!canEdit}
                             onChange={(e) => handleProgressChange(task, e)}
-                            className={`w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg appearance-none accent-zinc-900 dark:accent-white ${
+                            className={`w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg appearance-none accent-zinc-900 dark:accent-white ${
                               canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
                             }`}
                             title={canEdit ? 'Update progress' : `Only ${assignee.name} or Lead can update progress`}
@@ -299,13 +309,13 @@ export function KanbanTab({
                         </div>
 
                         {/* Card Footer: Assignee & Move Status */}
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                        <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
                           {/* Assignee */}
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                            <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
                               {assignee.initials}
                             </div>
-                            <span className="text-[11px] text-zinc-600 dark:text-zinc-300 truncate">
+                            <span className="text-[11px] text-zinc-600 dark:text-zinc-300 truncate font-medium">
                               {assignee.name}
                             </span>
                           </div>
@@ -315,7 +325,7 @@ export function KanbanTab({
                             value={task.status}
                             disabled={!canEdit}
                             onChange={(e) => handleStatusChange(task, e.target.value)}
-                            className={`text-[11px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 text-zinc-700 dark:text-zinc-300 outline-none ${
+                            className={`text-[10px] bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-0.5 text-zinc-700 dark:text-zinc-300 outline-none font-medium ${
                               canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
                             }`}
                             title={canEdit ? 'Change status' : `Only ${assignee.name} or Lead can change status`}

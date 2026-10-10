@@ -184,7 +184,7 @@ export function ReportsTab({
       </div>
 
       {/* Audit Period Filter Toolbar */}
-      <div className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 no-print">
+      <div className="card-modern p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 no-print">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Statement Period:</span>
           <CustomSelect
@@ -236,58 +236,58 @@ export function ReportsTab({
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
             Total Committed Budget
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{totalCommittedCapital.toLocaleString('en-IN')}
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-zinc-400">
             Across {partners.length} partners
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
             Total Disbursed Spend
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{totalSpent.toLocaleString('en-IN')}
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-zinc-400">
             {totalCommittedCapital > 0 ? `${((totalSpent / totalCommittedCapital) * 100).toFixed(1)}% utilized` : '—'}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
             Remaining Pool Reserve
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             ₹{(totalCommittedCapital - totalSpent).toLocaleString('en-IN')}
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-zinc-400">
             Liquid balance left
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+        <div className="card-modern card-hover p-4 sm:p-5 rounded-2xl">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
             Verified Receipts
           </div>
-          <div className="text-2xl font-bold font-mono-num text-zinc-950 dark:text-white">
-            {totalProofsCount} / {filteredExpenses.length}
+          <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
+            {totalProofsCount} <span className="text-lg text-zinc-400 font-normal">/ {filteredExpenses.length}</span>
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-zinc-400">
             {filteredExpenses.length > 0 ? `${Math.round((totalProofsCount / filteredExpenses.length) * 100)}% proof compliance` : '—'}
           </div>
         </div>
       </div>
 
       {/* SECTION: Partner Capital & Spend Ledger Table */}
-      <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
-        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+      <div className="card-modern rounded-2xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-zinc-950 dark:text-white">
               Partner Capital & Spend Ledger
@@ -298,7 +298,7 @@ export function ReportsTab({
           </div>
           <button
             onClick={onOpenPartnerModal}
-            className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white no-print cursor-pointer"
+            className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white no-print cursor-pointer"
           >
             Edit Allocations →
           </button>
@@ -307,7 +307,7 @@ export function ReportsTab({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Partner</th>
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4 font-mono-num text-right">Allocated Budget</th>
@@ -365,8 +365,8 @@ export function ReportsTab({
       </div>
 
       {/* SECTION: Spend Area Statement Table */}
-      <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs">
-        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="card-modern rounded-2xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800">
           <h2 className="text-sm sm:text-base font-bold text-zinc-950 dark:text-white">
             Operational Channel Breakdown
           </h2>
@@ -378,7 +378,7 @@ export function ReportsTab({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-zinc-50/70 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Spend Area / Channel</th>
                 <th className="py-3 px-4 font-mono-num text-right">Disbursed Amount</th>
                 <th className="py-3 px-4 font-mono-num text-right">Share of Total</th>
@@ -415,7 +415,7 @@ export function ReportsTab({
       </div>
 
       {/* SECTION: Backup & Data Management (No-print) */}
-      <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-4 no-print">
+      <div className="card-modern p-4 sm:p-5 rounded-2xl space-y-4 no-print">
         <div>
           <h3 className="text-sm font-bold text-zinc-950 dark:text-white">
             Data Backup & Maintenance
