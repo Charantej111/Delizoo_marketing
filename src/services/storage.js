@@ -272,7 +272,13 @@ export const storageService = {
         // If any partner in Supabase was missing email, sync back their verified emails
         const anyMissingEmailInDb = dbPartners.some(dbp => !dbp.email || !dbp.email.trim());
         if (anyMissingEmailInDb) {
-          this.pushPartnersToSupabase(finalPartners).catch(err => console.warn('[Partner Email Resync Error]:', err));
+          (async () => {
+            try {
+              await this.pushPartnersToSupabase(finalPartners);
+            } catch (err) {
+              console.warn('[Partner Email Resync Error]:', err);
+            }
+          })();
         }
       } else {
         // Seed default partners into Supabase
@@ -532,7 +538,13 @@ export const storageService = {
         completed_items: t.completedItems || [],
         notes: t.notes || ''
       }));
-      supabase.from('tasks').upsert(payload).catch(e => console.error('[Supabase Tasks Upsert Error]:', e));
+      (async () => {
+        try {
+          await supabase.from('tasks').upsert(payload);
+        } catch (e) {
+          console.error('[Supabase Tasks Upsert Error]:', e);
+        }
+      })();
     }
   },
 
@@ -570,14 +582,26 @@ export const storageService = {
         proof_data_url: e.proofDataUrl || null,
         proof_name: e.proofName || null
       }));
-      supabase.from('expenses').upsert(payload).catch(e => console.error('[Supabase Expenses Upsert Error]:', e));
+      (async () => {
+        try {
+          await supabase.from('expenses').upsert(payload);
+        } catch (e) {
+          console.error('[Supabase Expenses Upsert Error]:', e);
+        }
+      })();
     }
   },
 
   savePartners(partners, pushToDb = true) {
     localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(partners));
     if (pushToDb && Array.isArray(partners)) {
-      this.pushPartnersToSupabase(partners).catch(e => console.error('[Supabase Partners Upsert Error]:', e));
+      (async () => {
+        try {
+          await this.pushPartnersToSupabase(partners);
+        } catch (e) {
+          console.error('[Supabase Partners Upsert Error]:', e);
+        }
+      })();
     }
   },
 
@@ -585,7 +609,13 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.SPEND_AREAS, JSON.stringify(spendAreas));
     if (pushToDb && Array.isArray(spendAreas)) {
       const payload = spendAreas.map(name => ({ name }));
-      supabase.from('spend_areas').upsert(payload, { onConflict: 'name' }).catch(e => console.error('[Supabase Spend Areas Upsert Error]:', e));
+      (async () => {
+        try {
+          await supabase.from('spend_areas').upsert(payload, { onConflict: 'name' });
+        } catch (e) {
+          console.error('[Supabase Spend Areas Upsert Error]:', e);
+        }
+      })();
     }
   },
 
