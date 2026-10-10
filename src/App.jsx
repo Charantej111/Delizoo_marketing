@@ -323,7 +323,17 @@ export default function App() {
 
     // Send email alert to founders via Gmail SMTP when expense is recorded
     if (isNew) {
-      emailService.sendExpenseLoggedAlert(expense, partners);
+      emailService.sendExpenseLoggedAlert(expense, partners)
+        .then(result => {
+          if (result && result.success) {
+            console.log('[Email Alert Sent]: Expense notification sent to founders.', result);
+          } else {
+            console.warn('[Email Alert Notice]:', result);
+          }
+        })
+        .catch(err => {
+          console.error('[Email Alert Error]:', err);
+        });
     }
 
     if (expense.spendArea) {

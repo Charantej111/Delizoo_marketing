@@ -11,7 +11,8 @@ import {
   Search,
   Filter,
   RotateCcw,
-  FileCheck
+  FileCheck,
+  FileText
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { storageService, DEFAULT_PARTNERS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
@@ -389,15 +390,22 @@ export function ExpensesTab({
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {e.proofDataUrl && (
-                      <button
-                        onClick={() => onViewProof(e)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 cursor-pointer"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>Proof</span>
-                      </button>
-                    )}
+                    {e.proofDataUrl && (() => {
+                      const isPdf = e.proofType === 'application/pdf' || e.proofName?.toLowerCase().endsWith('.pdf') || e.proofDataUrl.startsWith('data:application/pdf');
+                      return (
+                        <button
+                          onClick={() => onViewProof(e)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold cursor-pointer ${
+                            isPdf
+                              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 hover:bg-rose-100'
+                              : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {isPdf ? <FileText className="w-3 h-3 text-rose-600 dark:text-rose-400" /> : <Eye className="w-3 h-3" />}
+                          <span>{isPdf ? 'PDF' : 'Proof'}</span>
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={() => onEditExpense(e)}
                       className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -468,15 +476,22 @@ export function ExpensesTab({
                         {e.paymentMode || 'UPI'}
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
-                        {e.proofDataUrl ? (
-                          <button
-                            onClick={() => onViewProof(e)}
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:underline cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-zinc-500" />
-                            <span>View</span>
-                          </button>
-                        ) : (
+                        {e.proofDataUrl ? (() => {
+                          const isPdf = e.proofType === 'application/pdf' || e.proofName?.toLowerCase().endsWith('.pdf') || e.proofDataUrl.startsWith('data:application/pdf');
+                          return (
+                            <button
+                              onClick={() => onViewProof(e)}
+                              className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${
+                                isPdf
+                                  ? 'text-rose-600 dark:text-rose-400 hover:text-rose-700'
+                                  : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white'
+                              }`}
+                            >
+                              {isPdf ? <FileText className="w-3.5 h-3.5 text-rose-500" /> : <Eye className="w-3.5 h-3.5 text-zinc-500" />}
+                              <span>{isPdf ? 'PDF' : 'View'}</span>
+                            </button>
+                          );
+                        })() : (
                           <span className="text-zinc-300 dark:text-zinc-600 text-[11px]">—</span>
                         )}
                       </td>

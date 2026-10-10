@@ -183,10 +183,16 @@ export const storageService = {
       }
 
       // Normalize expenses
-      const expenses = rawExpenses.map(e => ({
-        ...e,
-        payer: normalizePayerName(e.payer, partners) || e.payer
-      }));
+      const expenses = rawExpenses.map(e => {
+        const isPdf = e.proofType === 'application/pdf' ||
+          (e.proofName && e.proofName.toLowerCase().endsWith('.pdf')) ||
+          (e.proofDataUrl && e.proofDataUrl.startsWith('data:application/pdf'));
+        return {
+          ...e,
+          payer: normalizePayerName(e.payer, partners) || e.payer,
+          proofType: isPdf ? 'application/pdf' : (e.proofDataUrl ? 'image/jpeg' : '')
+        };
+      });
 
       // Load spend areas
       let rawSpendAreas = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPEND_AREAS) || 'null');
@@ -249,15 +255,25 @@ export const storageService = {
       // If Supabase has data, use Supabase as the source of truth
       let finalPartners = localData.partners;
       if (dbPartners.length > 0) {
-        finalPartners = dbPartners.map(p => ({
-          id: p.id,
-          name: p.name,
-          role: p.role,
-          email: p.email || '',
-          investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || 0),
-          color: p.color || '#10b981'
-        }));
+        finalPartners = dbPartners.map(p => {
+          const canonicalName = normalizePayerName(p.name, DEFAULT_PARTNERS);
+          const defaultMatch = DEFAULT_PARTNERS.find(dp => dp.name === canonicalName || dp.name.toLowerCase() === (p.name || '').toLowerCase() || dp.id === p.id);
+          return {
+            id: p.id || defaultMatch?.id || `partner-${p.name}`,
+            name: canonicalName || p.name,
+            role: p.role || defaultMatch?.role || 'Partner',
+            email: (p.email && p.email.trim()) ? p.email.trim() : (defaultMatch?.email || ''),
+            investment: typeof p.investment === 'number' ? p.investment : (Number(p.investment) || defaultMatch?.investment || 0),
+            color: p.color || defaultMatch?.color || '#10b981'
+          };
+        });
         this.savePartners(finalPartners, false);
+
+        // If any partner in Supabase was missing email, sync back their verified emails
+        const anyMissingEmailInDb = dbPartners.some(dbp => !dbp.email || !dbp.email.trim());
+        if (anyMissingEmailInDb) {
+          this.pushPartnersToSupabase(finalPartners).catch(err => console.warn('[Partner Email Resync Error]:', err));
+        }
       } else {
         // Seed default partners into Supabase
         await this.pushPartnersToSupabase(DEFAULT_PARTNERS);
@@ -302,21 +318,26 @@ export const storageService = {
 
       let finalExpenses = localData.expenses;
       if (dbExpenses.length > 0) {
-        const dbExpensesMapped = dbExpenses.map(e => ({
-          id: e.id,
-          amount: Number(e.amount) || 0,
-          date: e.date,
-          time: e.time || '',
-          payer: e.payer,
-          spendArea: e.spend_area,
-          category: e.category,
-          vendor: e.vendor || '',
-          paymentMode: e.payment_mode || 'UPI',
-          utrNumber: e.utr_number || '',
-          howItHelped: e.how_it_helped || '',
-          proofDataUrl: e.proof_data_url || null,
-          proofName: e.proof_name || null
-        }));
+        const dbExpensesMapped = dbExpenses.map(e => {
+          const isPdf = (e.proof_name && e.proof_name.toLowerCase().endsWith('.pdf')) ||
+            (e.proof_data_url && e.proof_data_url.startsWith('data:application/pdf'));
+          return {
+            id: e.id,
+            amount: Number(e.amount) || 0,
+            date: e.date,
+            time: e.time || '',
+            payer: e.payer,
+            spendArea: e.spend_area,
+            category: e.category,
+            vendor: e.vendor || '',
+            paymentMode: e.payment_mode || 'UPI',
+            utrNumber: e.utr_number || '',
+            howItHelped: e.how_it_helped || '',
+            proofDataUrl: e.proof_data_url || null,
+            proofName: e.proof_name || null,
+            proofType: isPdf ? 'application/pdf' : (e.proof_data_url ? 'image/jpeg' : '')
+          };
+        });
 
         // Preserve any local existing expenses that haven't synced to DB yet
         const dbExpIds = new Set(dbExpensesMapped.map(e => e.id));
@@ -516,7 +537,23 @@ export const storageService = {
   },
 
   saveExpenses(expenses, pushToDb = true) {
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+    try {
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+    } catch (storageErr) {
+      console.warn('[LocalStorage Quota Exceeded]: Could not cache all expenses locally, saving stripped cache.', storageErr);
+      try {
+        // If local storage quota exceeded due to large PDF/image proofs, strip proofDataUrl for local storage cache while keeping metadata
+        const slimExpenses = (expenses || []).map(e => ({
+          ...e,
+          proofDataUrl: null,
+          hasProofCached: !!e.proofDataUrl
+        }));
+        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(slimExpenses));
+      } catch (e2) {
+        console.error('[LocalStorage Fatal Error]:', e2);
+      }
+    }
+
     if (pushToDb && Array.isArray(expenses)) {
       const payload = expenses.map(e => ({
         id: e.id,
@@ -726,7 +763,20 @@ export const storageService = {
     return new Promise((resolve, reject) => {
       if (!file) return reject(new Error('No file provided'));
 
-      if (file.type.startsWith('image/')) {
+      // Check file size (8MB max)
+      const maxSizeBytes = 8 * 1024 * 1024;
+      if (file.size > maxSizeBytes) {
+        return reject(new Error('File size exceeds 8MB. Please choose a smaller receipt file.'));
+      }
+
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+      if (!isImage && !isPdf) {
+        return reject(new Error('Only receipt images (JPG, PNG, WebP) and PDF documents are supported as payment proof.'));
+      }
+
+      if (isImage) {
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
@@ -767,16 +817,21 @@ export const storageService = {
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
       } else {
+        // PDF Document handling
         const reader = new FileReader();
         reader.onload = (e) => {
+          let dataUrl = e.target.result;
+          if (typeof dataUrl === 'string' && dataUrl.startsWith('data:') && !dataUrl.startsWith('data:application/pdf')) {
+            dataUrl = dataUrl.replace(/^data:[^;]+/, 'data:application/pdf');
+          }
           resolve({
-            dataUrl: e.target.result,
+            dataUrl,
             name: file.name,
-            type: file.type,
+            type: 'application/pdf',
             size: file.size
           });
         };
-        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.onerror = () => reject(new Error('Failed to read PDF document'));
         reader.readAsDataURL(file);
       }
     });

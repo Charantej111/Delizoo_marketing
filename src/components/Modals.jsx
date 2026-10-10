@@ -13,7 +13,8 @@ import {
   Users,
   Plus,
   Layers,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
 import { CustomSelect } from './ui/CustomSelect';
@@ -481,37 +482,83 @@ export function ExpenseModal({
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Stored privately on your device</span>
             </div>
 
-            {formData.proofDataUrl ? (
-              <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 rounded-xl shadow-2xs">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <img
-                    src={formData.proofDataUrl}
-                    alt="Proof Preview"
-                    className="w-12 h-12 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700 shrink-0"
-                  />
-                  <div className="truncate">
-                    <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs truncate">
-                      {formData.proofName || 'Attached Document'}
-                    </p>
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                      Attached successfully
-                    </p>
+            {formData.proofDataUrl ? (() => {
+              const isPdfProof = formData.proofType === 'application/pdf' || 
+                formData.proofName?.toLowerCase().endsWith('.pdf') || 
+                formData.proofDataUrl?.startsWith('data:application/pdf');
+
+              const handlePreviewClick = () => {
+                if (!formData.proofDataUrl) return;
+                if (isPdfProof) {
+                  try {
+                    const arr = formData.proofDataUrl.split(',');
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                      u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    const blob = new Blob([u8arr], { type: 'application/pdf' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                  } catch (e) {
+                    window.open(formData.proofDataUrl, '_blank');
+                  }
+                } else {
+                  window.open(formData.proofDataUrl, '_blank');
+                }
+              };
+
+              return (
+                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 rounded-xl shadow-2xs">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    {isPdfProof ? (
+                      <div className="w-12 h-12 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex flex-col items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                        <span className="text-[9px] font-black uppercase text-rose-700 dark:text-rose-300 leading-none mt-0.5">PDF</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={formData.proofDataUrl}
+                        alt="Proof Preview"
+                        className="w-12 h-12 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700 shrink-0"
+                      />
+                    )}
+                    <div className="truncate">
+                      <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs truncate">
+                        {formData.proofName || (isPdfProof ? 'Payment_Proof.pdf' : 'Attached Document')}
+                      </p>
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <span>✓</span> {isPdfProof ? 'PDF Document attached' : 'Receipt image attached'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handlePreviewClick}
+                      className="px-2 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200 font-bold text-xs transition-all cursor-pointer flex items-center gap-1"
+                      title="Preview attached document"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, proofDataUrl: '', proofName: '', proofType: '' }))}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, proofDataUrl: '', proofName: '', proofType: '' }))}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 font-bold text-xs transition-all cursor-pointer"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
+              );
+            })() : (
               <div>
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/*,.pdf"
+                  accept="image/*,.pdf,application/pdf"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -522,7 +569,7 @@ export function ExpenseModal({
                   className="w-full py-3 px-4 border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-800 dark:hover:border-zinc-500 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-800 flex items-center justify-center gap-2 font-bold text-zinc-700 dark:text-zinc-200 transition-all shadow-2xs cursor-pointer"
                 >
                   <Upload className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                  <span>{isProcessingFile ? 'Processing...' : 'Upload Receipt or Payment Screenshot'}</span>
+                  <span>{isProcessingFile ? 'Processing...' : 'Upload Receipt or Invoice (PDF or Image)'}</span>
                 </button>
               </div>
             )}
@@ -1017,6 +1064,10 @@ export function ProofModal({ isOpen, onClose, expense }) {
 
   const [zoom, setZoom] = useState(1);
 
+  const isPdf = expense.proofType === 'application/pdf' || 
+    expense.proofName?.toLowerCase().endsWith('.pdf') || 
+    expense.proofDataUrl?.startsWith('data:application/pdf');
+
   useEffect(() => {
     if (isOpen) {
       setZoom(1);
@@ -1027,10 +1078,35 @@ export function ProofModal({ isOpen, onClose, expense }) {
     if (!expense.proofDataUrl) return;
     const a = document.createElement('a');
     a.href = expense.proofDataUrl;
-    a.download = expense.proofName || `receipt_${expense.date}_${expense.id}.png`;
+    const defaultName = isPdf
+      ? `receipt_${expense.date}_${expense.id}.pdf`
+      : `receipt_${expense.date}_${expense.id}.png`;
+    a.download = expense.proofName || defaultName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const handleOpenInNewTab = () => {
+    if (!expense.proofDataUrl) return;
+    if (isPdf) {
+      try {
+        const arr = expense.proofDataUrl.split(',');
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        window.open(expense.proofDataUrl, '_blank');
+      }
+    } else {
+      window.open(expense.proofDataUrl, '_blank');
+    }
   };
 
   return (
@@ -1039,48 +1115,106 @@ export function ProofModal({ isOpen, onClose, expense }) {
         {/* Header */}
         <div className="p-4 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md">
           <div>
-            <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">{expense.vendor || 'Payment Receipt'}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">{expense.vendor || 'Payment Receipt'}</h3>
+              {isPdf && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60">
+                  PDF
+                </span>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono-num mt-0.5">
               {expense.date} • {expense.paymentMode} • UTR: {expense.utrNumber || 'N/A'}
             </p>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {!isPdf && (
+              <>
+                <button
+                  onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))}
+                  className="px-2 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200"
+                >
+                  −
+                </button>
+                <span className="text-xs font-mono-num font-bold text-zinc-600 dark:text-zinc-300">{Math.round(zoom * 100)}%</span>
+                <button
+                  onClick={() => setZoom(prev => Math.min(prev + 0.25, 2.5))}
+                  className="px-2 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200"
+                >
+                  +
+                </button>
+              </>
+            )}
             <button
-              onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))}
-              className="px-2 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200"
+              onClick={handleOpenInNewTab}
+              className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+              title="Open full document in new tab"
             >
-              −
-            </button>
-            <span className="text-xs font-mono-num font-bold text-zinc-600 dark:text-zinc-300">{Math.round(zoom * 100)}%</span>
-            <button
-              onClick={() => setZoom(prev => Math.min(prev + 0.25, 2.5))}
-              className="px-2 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200"
-            >
-              +
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Open Full</span>
             </button>
             <button
               onClick={handleDownload}
-              className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1 shadow-2xs transition-all"
+              className="px-3 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Download</span>
             </button>
-            <button onClick={onClose} className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg transition-colors">
+            <button onClick={onClose} className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg transition-colors cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Image Preview Container */}
+        {/* Document Preview Container */}
         <div className="flex-1 overflow-auto p-4 bg-zinc-100/70 dark:bg-zinc-950 flex items-center justify-center min-h-[380px]">
           {expense.proofDataUrl ? (
-            <img
-              src={expense.proofDataUrl}
-              alt="Payment Receipt"
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
-              className="max-w-full max-h-[65vh] object-contain rounded-xl shadow-md transition-transform duration-150"
-            />
+            isPdf ? (
+              <div className="w-full h-full flex flex-col min-h-[460px]">
+                <object
+                  data={expense.proofDataUrl}
+                  type="application/pdf"
+                  className="w-full h-[62vh] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white shadow-xs"
+                >
+                  {/* Fallback if embedded object plugin cannot render inline */}
+                  <div className="p-8 text-center flex flex-col items-center justify-center h-full min-h-[350px] bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex items-center justify-center mb-3">
+                      <FileText className="w-8 h-8 text-rose-600 dark:text-rose-400" />
+                    </div>
+                    <h4 className="font-bold text-zinc-900 dark:text-white text-sm mb-1">
+                      {expense.proofName || 'Audit PDF Receipt'}
+                    </h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mb-4">
+                      This is an attached PDF payment proof. Click below to view in full window or save to your device.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleOpenInNewTab}
+                        className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open PDF in New Window</span>
+                      </button>
+                      <button
+                        onClick={handleDownload}
+                        className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-bold hover:bg-zinc-200 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download PDF</span>
+                      </button>
+                    </div>
+                  </div>
+                </object>
+              </div>
+            ) : (
+              <img
+                src={expense.proofDataUrl}
+                alt="Payment Receipt"
+                style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+                className="max-w-full max-h-[65vh] object-contain rounded-xl shadow-md transition-transform duration-150"
+              />
+            )
           ) : (
             <p className="text-sm text-zinc-400 dark:text-zinc-500">No receipt file attached.</p>
           )}

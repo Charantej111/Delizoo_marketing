@@ -27,11 +27,12 @@ function loadEnvFallback() {
 }
 loadEnvFallback();
 
-const connectionString = process.env.DATABASE_URL || "://postgres:Charanteja@61A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
+const connectionString = process.env.DATABASE_URL || "postgresql://postgres:Charanteja%4061A4@db.wclyevaejqlkltivzxuq.supabase.co:5432/postgres";
 
 // Helper to log to Supabase email_logs table
 async function logEmailToDb(eventType, recipient, subject, body, status, error = null) {
   try {
+    if (!connectionString || connectionString.startsWith('://')) return;
     const client = new pg.Client({
       connectionString,
       ssl: { rejectUnauthorized: false }
@@ -43,7 +44,7 @@ async function logEmailToDb(eventType, recipient, subject, body, status, error =
     );
     await client.end();
   } catch (dbErr) {
-    console.error('[Email Log DB Error]:', dbErr.message);
+    console.warn('[Email Log DB Warning]:', dbErr.message);
   }
 }
 
@@ -388,8 +389,8 @@ export async function handleSendEmail(reqBody) {
                   <td style="padding: 12px 16px; color: #64748b; font-weight: 500;">
                     Audit Proof
                   </td>
-                  <td style="padding: 12px 16px; color: ${expense.proofDataUrl ? '#0f766e' : '#64748b'}; font-weight: 600;">
-                    ${expense.proofDataUrl ? '✓ Receipt Attached & Verified' : 'No Receipt Attached'}
+                  <td style="padding: 12px 16px; color: ${(expense.proofDataUrl || expense.hasProof) ? '#0f766e' : '#64748b'}; font-weight: 600;">
+                    ${(expense.proofDataUrl || expense.hasProof) ? `✓ ${expense.proofName ? expense.proofName + ' (Attached)' : 'Receipt Attached & Verified'}` : 'No Receipt Attached'}
                   </td>
                 </tr>
               </table>
@@ -444,12 +445,32 @@ export async function handleSendEmail(reqBody) {
   }
 
   try {
-    const info = await transporter.sendMail({
+    const recipientList = Array.isArray(targetEmail)
+      ? targetEmail
+      : targetEmail.split(',').map(e => e.trim()).filter(Boolean);
+
+    const mailOptions = {
       from: `"${senderName}" <${gmailUser}>`,
-      to: targetEmail,
+      to: recipientList,
       subject: mailSubject,
       html: mailHtml
-    });
+    };
+
+    // If receipt / invoice proof is attached, add it as a native email attachment
+    if (expense?.proofDataUrl && typeof expense.proofDataUrl === 'string' && expense.proofDataUrl.startsWith('data:')) {
+      const isPdfAttachment = expense.proofType === 'application/pdf' ||
+        expense.proofName?.toLowerCase().endsWith('.pdf') ||
+        expense.proofDataUrl.startsWith('data:application/pdf');
+      const filename = expense.proofName || (isPdfAttachment ? 'Payment_Receipt.pdf' : 'Payment_Receipt.png');
+      mailOptions.attachments = [
+        {
+          filename,
+          path: expense.proofDataUrl
+        }
+      ];
+    }
+
+    const info = await transporter.sendMail(mailOptions);
 
     console.log(`[Email Sent Success]: ${mailSubject} -> ${targetEmail} (ID: ${info.messageId})`);
     await logEmailToDb(type || 'CUSTOM', targetEmail, mailSubject, mailHtml, 'SENT');
