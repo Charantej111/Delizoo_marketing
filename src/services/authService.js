@@ -15,6 +15,18 @@ export const AUTHORIZED_FOUNDERS = [
   { name: 'J Sandeep', email: 'jakkasandeep9@gmail.com', role: 'Founder / Support', isLead: false, investment: 10000, color: '#ec4899' }
 ];
 
+// Initial individual custom passwords for the 6 co-founders
+export const INITIAL_FOUNDER_PASSWORDS = {
+  'ncharantejaa@gmail.com': 'Charan@delizoo',
+  'dev.pavangollapalli@gmail.com': 'Pavan@delizoo',
+  'mangamnareenkumar@gmail.com': 'Nareen@delizoo',
+  'dheerajbathi@gmail.com': 'Dheeraj@delizoo',
+  'dev.sunilgarbana@gmail.com': 'Sunil@delizoo',
+  'jakkasandeep9@gmail.com': 'Sandeep@delizoo'
+};
+
+const PASSWORDS_STORAGE_KEY = 'delizoo_founder_passwords';
+
 export const authService = {
   // Check if given email belongs to one of the 6 co-founders
   isFounderEmail(email, partners = []) {
@@ -40,6 +52,108 @@ export const authService = {
       return { ...found, isLead };
     }
     return AUTHORIZED_FOUNDERS.find(f => f.email.toLowerCase() === cleanEmail) || null;
+  },
+
+  // Retrieve stored password changes from localStorage
+  getSavedPasswords() {
+    try {
+      const raw = localStorage.getItem(PASSWORDS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  },
+
+  // Get current active password for founder email (custom reset password or initial default)
+  getExpectedPassword(email) {
+    if (!email) return null;
+    const cleanEmail = email.trim().toLowerCase();
+    const saved = this.getSavedPasswords();
+    if (saved && saved[cleanEmail]) {
+      return saved[cleanEmail];
+    }
+    return INITIAL_FOUNDER_PASSWORDS[cleanEmail] || null;
+  },
+
+  // Sign in directly with given credentials (email & password)
+  async loginWithPassword(email, password, partners = []) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
+
+    if (!cleanEmail || !cleanPassword) {
+      return { success: false, error: 'Email and password are required.' };
+    }
+
+    // 1. Verify founder eligibility
+    const founder = this.getFounderByEmail(cleanEmail, partners);
+    if (!founder) {
+      return {
+        success: false,
+        notEligible: true,
+        error: 'This is a private OS, not eligible for login.'
+      };
+    }
+
+    // 2. Verify password match
+    const expectedPassword = this.getExpectedPassword(cleanEmail);
+    if (!expectedPassword || expectedPassword !== cleanPassword) {
+      return {
+        success: false,
+        error: 'Incorrect password. Please verify your credentials or use Forgot Password.'
+      };
+    }
+
+    // 3. Establish verified founder session
+    const sessionUser = this.saveSession(founder);
+    return {
+      success: true,
+      partner: sessionUser
+    };
+  },
+
+  // Direct in-app password reset / change without sending emails
+  async resetPassword(email, newPassword, confirmPassword, partners = []) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanNew = (newPassword || '').trim();
+    const cleanConfirm = (confirmPassword || '').trim();
+
+    if (!cleanEmail) {
+      return { success: false, error: 'Founder email is required.' };
+    }
+
+    // 1. Founder eligibility check
+    const founder = this.getFounderByEmail(cleanEmail, partners);
+    if (!founder) {
+      return {
+        success: false,
+        notEligible: true,
+        error: 'This is a private OS, not eligible for login.'
+      };
+    }
+
+    if (!cleanNew) {
+      return { success: false, error: 'New password cannot be empty.' };
+    }
+
+    if (cleanNew.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters.' };
+    }
+
+    if (cleanNew !== cleanConfirm) {
+      return { success: false, error: 'Passwords do not match.' };
+    }
+
+    try {
+      const saved = this.getSavedPasswords();
+      saved[cleanEmail] = cleanNew;
+      localStorage.setItem(PASSWORDS_STORAGE_KEY, JSON.stringify(saved));
+      return {
+        success: true,
+        message: `Password updated successfully for ${founder.name}. You can now sign in with your new password.`
+      };
+    } catch (e) {
+      return { success: false, error: 'Failed to update password. Please try again.' };
+    }
   },
 
   // Send OTP directly from Supabase to given email if matched with founders

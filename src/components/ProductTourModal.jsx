@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sun, X, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
@@ -186,15 +187,15 @@ export function ProductTourModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/80 backdrop-blur-xs select-none animate-in">
-      
+
       {/* Centered Split Card Container matching signin page exactly */}
       <div className="w-full relative max-w-5xl max-h-[92vh] flex flex-col md:flex-row shadow-2xl rounded-2xl sm:rounded-3xl border border-zinc-800 bg-white overflow-hidden">
-        
+
         {/* Left Artistic Dark Panel (Desktop only) */}
         <div className="hidden md:flex bg-black text-white p-8 md:p-12 md:w-1/2 relative overflow-hidden flex-col justify-between min-h-[520px] lg:min-h-[580px] shrink-0">
           {/* Top Gradient Overlay */}
           <div className="w-full h-full z-2 absolute inset-0 bg-gradient-to-t from-transparent via-black/40 to-black pointer-events-none"></div>
-          
+
           {/* Fluted Vertical Glass Pillars */}
           <div className="flex absolute inset-0 z-2 overflow-hidden backdrop-blur-2xl pointer-events-none">
             <div className="h-[45rem] z-2 w-[4.5rem] bg-gradient-to-r from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
@@ -241,7 +242,7 @@ export function ProductTourModal({ isOpen, onClose }) {
 
         {/* Right Content Panel */}
         <div className="p-5 sm:p-8 md:p-12 w-full md:w-1/2 flex flex-col justify-between bg-white text-zinc-900 z-10 relative overflow-y-auto max-h-[92vh] md:max-h-none">
-          
+
           {/* Top Sunburst, Brand & Close Button */}
           <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
@@ -270,11 +271,10 @@ export function ProductTourModal({ isOpen, onClose }) {
                 key={s.id}
                 type="button"
                 onClick={() => setCurrentStep(idx)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-                  currentStep === idx
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${currentStep === idx
                     ? 'bg-zinc-900 text-white'
                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-                }`}
+                  }`}
               >
                 {s.tabLabel}
               </button>
@@ -297,7 +297,7 @@ export function ProductTourModal({ isOpen, onClose }) {
 
           {/* Bottom Controls */}
           <div className="pt-3 sm:pt-4 border-t border-gray-100 flex items-center justify-between mt-3 sm:mt-4 gap-2">
-            
+
             {/* Step Dots Indicator */}
             <div className="flex items-center gap-1.5 shrink-0">
               {steps.map((_, idx) => (
@@ -305,11 +305,10 @@ export function ProductTourModal({ isOpen, onClose }) {
                   key={idx}
                   type="button"
                   onClick={() => setCurrentStep(idx)}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
-                    currentStep === idx
+                  className={`h-2 rounded-full transition-all cursor-pointer ${currentStep === idx
                       ? 'w-5 sm:w-6 bg-orange-500'
                       : 'w-2 bg-gray-200 hover:bg-gray-300'
-                  }`}
+                    }`}
                   title={`Jump to slide ${idx + 1}`}
                 />
               ))}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Sun, ArrowLeft, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sun, ArrowLeft, RefreshCw, AlertCircle, CheckCircle2, Lock, Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import { authService } from '../services/authService';
 import { DEFAULT_PARTNERS } from '../services/storage';
 
@@ -10,52 +10,54 @@ export const FullScreenSignup = ({
   partners = DEFAULT_PARTNERS,
   currentUser = null
 }) => {
-  const [mode, setMode] = useState(initialMode); // 'signin' | 'create'
-  const [step, setStep] = useState('email'); // 'email' | 'otp'
-
-  // Sync mode whenever initialMode prop updates
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
+  // Authentication views: 'signin' | 'forgot' (No create account)
+  const [view, setView] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Forgot password fields
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Error & Status feedback
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // Countdown timer for resend
-  useEffect(() => {
-    let timer;
-    if (resendCooldown > 0) {
-      timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
 
   const validateEmail = (value) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
 
-  const handleSendOtp = async (e) => {
+  // Sign In with email & password credentials
+  const handleSignIn = async (e) => {
     if (e) e.preventDefault();
     setEmailError('');
     setPasswordError('');
     setGeneralError('');
     setStatusMsg('');
 
-    if (!validateEmail(email)) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setEmailError('Please enter your founder email address.');
+      return;
+    }
+    if (!validateEmail(cleanEmail)) {
       setEmailError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setPasswordError('Please enter your password.');
       return;
     }
 
     setIsLoading(true);
 
-    // Pre-flight check: match with founders mail
-    const cleanEmail = email.trim().toLowerCase();
+    // Pre-flight check: match with authorized founders
     const isFounder = authService.isFounderEmail(cleanEmail, partners);
     if (!isFounder) {
       setIsLoading(false);
@@ -63,49 +65,68 @@ export const FullScreenSignup = ({
       return;
     }
 
-    // Send OTP directly from Supabase
-    const res = await authService.sendOtp(cleanEmail, partners);
+    // Direct password verification
+    const res = await authService.loginWithPassword(cleanEmail, password, partners);
     setIsLoading(false);
 
-    if (res.success) {
-      setStep('otp');
-      setResendCooldown(30);
-      setStatusMsg(`Confirmation code sent directly from Supabase to ${cleanEmail}.`);
+    if (res.success && res.partner) {
+      setStatusMsg(`Welcome back, ${res.partner.name}!`);
+      setTimeout(() => {
+        if (onLoginSuccess) onLoginSuccess(res.partner);
+      }, 400);
     } else {
       if (res.notEligible) {
         setGeneralError('This is a private OS, not eligible for login.');
       } else {
-        setGeneralError(res.error || 'Failed to dispatch confirmation code.');
+        setGeneralError(res.error || 'Invalid credentials. Please try again.');
       }
     }
   };
 
-  const handleVerifyOtp = async (e) => {
+  // Direct In-App Password Reset / Change
+  const handleResetPassword = async (e) => {
     if (e) e.preventDefault();
     setEmailError('');
     setPasswordError('');
     setGeneralError('');
     setStatusMsg('');
 
-    if (!otp || otp.trim().length < 6) {
-      setPasswordError('Please enter the 6-digit confirmation code.');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setEmailError('Please enter your founder email address.');
+      return;
+    }
+    if (!validateEmail(cleanEmail)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
       return;
     }
 
     setIsLoading(true);
-    const res = await authService.verifyOtp(email, otp.trim(), partners);
+    const res = await authService.resetPassword(cleanEmail, newPassword, confirmPassword, partners);
     setIsLoading(false);
 
-    if (res.success && res.partner) {
-      setStatusMsg(`Account confirmed! Welcome, ${res.partner.name}.`);
+    if (res.success) {
+      setStatusMsg(res.message || 'Password updated successfully! You can now sign in.');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPassword('');
+      // Return to sign in view with email prefilled
       setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess(res.partner);
-      }, 500);
+        setView('signin');
+      }, 1000);
     } else {
       if (res.notEligible) {
         setGeneralError('This is a private OS, not eligible for login.');
       } else {
-        setGeneralError(res.error || 'Invalid or expired confirmation code.');
+        setGeneralError(res.error || 'Failed to update password.');
       }
     }
   };
@@ -163,8 +184,9 @@ export const FullScreenSignup = ({
           </div>
 
           {/* Bottom Founder Tag */}
-          <div className="relative z-10 text-xs text-zinc-400 font-mono-num">
-            Kakinada Launch Operations • Private OS
+          <div className="relative z-10 text-xs text-zinc-400 font-mono-num flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Kakinada Launch Operations • Private Founder OS</span>
           </div>
         </div>
 
@@ -198,14 +220,12 @@ export const FullScreenSignup = ({
               <Sun className="h-8 w-8 sm:h-10 sm:w-10 text-orange-500" />
             </div>
             <h2 className="text-2xl sm:text-3xl font-medium mb-1.5 sm:mb-2 tracking-tight text-zinc-950">
-              {step === 'otp' ? 'Confirm Code' : (mode === 'create' ? 'Get Started' : 'Sign In')}
+              {view === 'forgot' ? 'Forgot / Change Password' : 'Sign In'}
             </h2>
             <p className="text-left text-sm text-zinc-500">
-              {step === 'otp'
-                ? `Enter the 6-digit code sent directly from Supabase to ${email}`
-                : (mode === 'create'
-                    ? "Welcome to Delizoo OS — Let's get started"
-                    : 'Welcome back to Delizoo OS — Sign in with your founder email')}
+              {view === 'forgot'
+                ? 'Enter your founder email and choose a new password.'
+                : 'Welcome back to Delizoo OS — Sign in with your founder credentials.'}
             </p>
           </div>
 
@@ -226,168 +246,223 @@ export const FullScreenSignup = ({
           )}
 
           {/* Form */}
-          {step === 'email' ? (
-            <form className="flex flex-col gap-4" onSubmit={handleSendOtp} noValidate>
+          {view === 'signin' ? (
+            <form className="flex flex-col gap-4" onSubmit={handleSignIn} noValidate>
               <div>
-                <label htmlFor="email" className="block text-sm mb-2 font-medium text-zinc-800">
-                  Your email
+                <label htmlFor="signin-email" className="block text-sm mb-2 font-medium text-zinc-800">
+                  Founder Email
                 </label>
-                <input
-                  type="email"
-                  id="email"
-                  placeholder="ncharantejaa@gmail.com"
-                  className={`text-sm w-full py-2.5 px-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
-                    emailError ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) setEmailError('');
-                    if (generalError) setGeneralError('');
-                  }}
-                  aria-invalid={!!emailError}
-                  aria-describedby="email-error"
-                />
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    id="signin-email"
+                    autoFocus
+                    placeholder="e.g. ncharantejaa@gmail.com"
+                    className={`text-sm w-full py-2.5 pl-9 pr-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
+                      emailError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError('');
+                      if (generalError) setGeneralError('');
+                    }}
+                    aria-invalid={!!emailError}
+                    aria-describedby="signin-email-error"
+                  />
+                </div>
                 {emailError && (
-                  <p id="email-error" className="text-red-500 text-xs mt-1">
+                  <p id="signin-email-error" className="text-red-500 text-xs mt-1">
                     {emailError}
                   </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="password-placeholder" className="block text-sm mb-2 font-medium text-zinc-800">
-                  {mode === 'create' ? 'Create new password' : 'Password / 6-digit code'}
-                </label>
-                <input
-                  type="password"
-                  id="password-placeholder"
-                  placeholder="••••••••••••"
-                  className="text-sm w-full py-2.5 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <p className="text-[11px] text-zinc-400 mt-1">
-                  Private OS: Instant 6-digit verification code will be sent to confirm founder account.
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="signin-password" className="block text-sm font-medium text-zinc-800">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setView('forgot');
+                      setGeneralError('');
+                      setEmailError('');
+                      setPasswordError('');
+                      setStatusMsg('');
+                    }}
+                    className="text-xs text-orange-600 hover:text-orange-700 font-medium hover:underline cursor-pointer"
+                  >
+                    Forgot / Change Password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="signin-password"
+                    placeholder="Enter your password"
+                    className={`text-sm w-full py-2.5 pl-9 pr-10 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
+                      passwordError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError('');
+                      if (generalError) setGeneralError('');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 cursor-pointer p-0.5"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="text-red-500 text-xs mt-1">{passwordError}</p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !email.trim()}
+                disabled={isLoading || !email.trim() || !password}
                 className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
               >
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Checking Founder Eligibility...</span>
+                    <span>Signing in...</span>
                   </>
                 ) : (
-                  <span>{mode === 'create' ? 'Create a new account' : 'Sign in to account'}</span>
+                  <span>Sign In to Delizoo OS</span>
                 )}
               </button>
-
-              <div className="text-center text-gray-600 text-sm mt-2">
-                {mode === 'create' ? (
-                  <>
-                    Already have account?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode('signin');
-                        setGeneralError('');
-                        setEmailError('');
-                      }}
-                      className="text-zinc-950 font-medium underline cursor-pointer"
-                    >
-                      Login
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    Need to create account?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode('create');
-                        setGeneralError('');
-                        setEmailError('');
-                      }}
-                      className="text-zinc-950 font-medium underline cursor-pointer"
-                    >
-                      Sign Up
-                    </button>
-                  </>
-                )}
-              </div>
             </form>
           ) : (
-            <form className="flex flex-col gap-4" onSubmit={handleVerifyOtp} noValidate>
+            /* Forgot / Change Password Form */
+            <form className="flex flex-col gap-4" onSubmit={handleResetPassword} noValidate>
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="otp" className="block text-sm font-medium text-zinc-800">
-                    6-Digit Confirmation Code
-                  </label>
+                <label htmlFor="reset-email" className="block text-sm mb-2 font-medium text-zinc-800">
+                  Founder Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    id="reset-email"
+                    autoFocus
+                    placeholder="e.g. ncharantejaa@gmail.com"
+                    className={`text-sm w-full py-2.5 pl-9 pr-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
+                      emailError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError('');
+                      if (generalError) setGeneralError('');
+                    }}
+                  />
+                </div>
+                {emailError && (
+                  <p className="text-red-500 text-xs mt-1">{emailError}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="new-password" className="block text-sm mb-2 font-medium text-zinc-800">
+                  New Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    id="new-password"
+                    placeholder="At least 6 characters"
+                    className={`text-sm w-full py-2.5 pl-9 pr-10 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
+                      passwordError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (passwordError) setPasswordError('');
+                      if (generalError) setGeneralError('');
+                    }}
+                  />
                   <button
                     type="button"
-                    onClick={() => {
-                      setStep('email');
-                      setOtp('');
-                      setPasswordError('');
-                      setGeneralError('');
-                    }}
-                    className="text-xs text-orange-600 hover:underline cursor-pointer"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 cursor-pointer p-0.5"
                   >
-                    Change email
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <input
-                  type="text"
-                  id="otp"
-                  maxLength={6}
-                  placeholder="123456"
-                  autoFocus
-                  className={`text-sm w-full py-2.5 px-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black font-mono font-bold text-center tracking-widest ${
-                    passwordError ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={otp}
-                  onChange={(e) => {
-                    setOtp(e.target.value.replace(/\D/g, ''));
-                    if (passwordError) setPasswordError('');
-                    if (generalError) setGeneralError('');
-                  }}
-                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm mb-2 font-medium text-zinc-800">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirm-password"
+                    placeholder="Re-enter your new password"
+                    className={`text-sm w-full py-2.5 pl-9 pr-10 border rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white text-black transition-colors ${
+                      passwordError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (passwordError) setPasswordError('');
+                      if (generalError) setGeneralError('');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 cursor-pointer p-0.5"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {passwordError && (
                   <p className="text-red-500 text-xs mt-1">{passwordError}</p>
                 )}
-                <p className="text-[11px] text-zinc-400 mt-1">
-                  Sent from Supabase to <strong>{email}</strong>.
-                </p>
               </div>
 
               <div className="flex items-center gap-2 mt-2">
                 <button
                   type="submit"
-                  disabled={isLoading || otp.length < 6}
+                  disabled={isLoading || !email.trim() || !newPassword || !confirmPassword}
                   className="flex-1 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Confirming Account...</span>
+                      <span>Updating...</span>
                     </>
                   ) : (
-                    <span>Confirm & Enter OS</span>
+                    <span>Update Password</span>
                   )}
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleSendOtp}
-                  disabled={isLoading || resendCooldown > 0}
-                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  onClick={() => {
+                    setView('signin');
+                    setGeneralError('');
+                    setEmailError('');
+                    setPasswordError('');
+                  }}
+                  className="px-3.5 py-2.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  {resendCooldown > 0 ? `${resendCooldown}s` : 'Resend'}
+                  Back to Sign In
                 </button>
               </div>
             </form>

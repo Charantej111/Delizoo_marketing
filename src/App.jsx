@@ -27,8 +27,9 @@ const ROUTE_MAP = {
   '/kanban': 'kanban',
   '/reports': 'reports',
   '/audit': 'reports',
-  '/signup': 'signup',
+  '/signup': 'login',
   '/login': 'login',
+  '/signin': 'login',
   '/guide': 'guide',
   '/tour': 'guide'
 };
@@ -38,7 +39,7 @@ const TAB_PAGE_TITLES = {
   expenses: 'Delizoo OS - Capital Ledger & Expenses',
   kanban: 'Delizoo OS - Task Execution & Kanban',
   reports: 'Delizoo OS - Audit Reports & Summary',
-  signup: 'Delizoo OS - Create Founder Account',
+  signup: 'Delizoo OS - Founder Sign-In',
   login: 'Delizoo OS - Founder Sign-In',
   guide: 'Delizoo OS - Interactive Guide & Tour'
 };
@@ -47,10 +48,9 @@ function getTabFromPath(pathname = '/') {
   const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
   const user = authService.getCurrentUser();
   if (!user) {
-    if (clean === '/signup') return 'signup';
     return 'login';
   }
-  if (clean === '/' || clean === '/login' || clean === '/signin') {
+  if (clean === '/' || clean === '/login' || clean === '/signin' || clean === '/signup') {
     return 'overview';
   }
   return ROUTE_MAP[clean] || 'overview';
@@ -450,7 +450,7 @@ export default function App() {
   if (!currentUser || activeTab === 'signup' || activeTab === 'login' || isLoginModalOpen) {
     return (
       <FullScreenAuth
-        initialMode={activeTab === 'login' ? 'signin' : 'create'}
+        initialMode="signin"
         onLoginSuccess={(partner) => {
           handleLoginSuccess(partner);
           setActiveTab('overview');
@@ -484,7 +484,7 @@ export default function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
-        onOpenLoginModal={() => { setActiveTab('signup'); setIsLoginModalOpen(true); }}
+        onOpenLoginModal={() => { setActiveTab('login'); setIsLoginModalOpen(true); }}
         onLogout={handleLogout}
       />
 
