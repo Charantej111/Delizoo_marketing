@@ -5,7 +5,6 @@ import {
   Receipt,
   FileSpreadsheet,
   Plus,
-  Search,
   Users,
   Sun,
   Moon,
@@ -23,8 +22,6 @@ export function Navbar({
   onOpenTaskModal,
   onOpenPartnerModal,
   onOpenTour,
-  searchQuery,
-  setSearchQuery,
   expenseCount,
   taskCount,
   partnerCount = 6,
@@ -34,7 +31,6 @@ export function Navbar({
   onOpenLoginModal,
   onLogout
 }) {
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
@@ -78,13 +74,11 @@ export function Navbar({
               setActiveTab('overview');
             }}
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200/80 dark:border-zinc-700/60 p-1 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-              <img
-                src="/logo.png"
-                alt="Delizoo Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Delizoo Logo"
+              className="w-8 h-8 object-contain shrink-0 group-hover:scale-105 transition-transform"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm sm:text-base font-bold tracking-tight text-zinc-950 dark:text-white">
@@ -94,40 +88,14 @@ export function Navbar({
                   Live
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 dark:text-zinc-400 font-medium leading-none hidden xs:block">
+              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium leading-none hidden xs:block">
                 Kakinada Operations
               </p>
             </div>
           </a>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-sm hidden md:block">
-            <div className="relative group">
-              <Search className="w-3.5 h-3.5 text-zinc-400 group-focus-within:text-zinc-600 dark:group-focus-within:text-zinc-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search vendor, payer, UTR, task..."
-                className="w-full pl-9 pr-14 py-1.5 text-xs bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:bg-white dark:focus:bg-zinc-900 focus:border-zinc-900/40 dark:focus:border-zinc-600 focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/5 outline-none transition-all"
-              />
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 pointer-events-none hidden lg:inline-block">
-                ⌘K
-              </kbd>
-            </div>
-          </div>
-
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Mobile Search Toggle */}
-            <button
-              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="md:hidden p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
-              title="Search"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
             {/* OS Guide / Tour Button */}
             {onOpenTour && (
               <button
@@ -264,23 +232,6 @@ export function Navbar({
             )}
           </div>
         </div>
-
-        {/* Mobile Search Row */}
-        {isMobileSearchOpen && (
-          <div className="md:hidden pb-3">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search vendor, payer, UTR..."
-                className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 outline-none"
-              />
-            </div>
-          </div>
-        )}
 
         {/* Navigation Tabs Bar */}
         <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 scrollbar-none border-t border-zinc-100/80 dark:border-zinc-800/60">

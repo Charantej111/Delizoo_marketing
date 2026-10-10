@@ -12,7 +12,8 @@ import {
   Filter,
   RotateCcw,
   FileCheck,
-  FileText
+  FileText,
+  Receipt
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 import { storageService, DEFAULT_PARTNERS, DEFAULT_SPEND_AREAS, normalizePayerName } from '../services/storage';
@@ -231,7 +232,7 @@ export function ExpensesTab({
           </div>
           <div className="mt-2 text-xs text-zinc-400">
             {sortedExpenses.length > 0 && proofCount === sortedExpenses.length
-              ? '100% verified with proofs'
+              ? 'All receipts verified'
               : `${sortedExpenses.length - proofCount} pending receipts`}
           </div>
         </div>

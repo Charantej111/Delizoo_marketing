@@ -225,10 +225,8 @@ export function OverviewTab({
           <div className="mt-2 text-2xl sm:text-3xl font-bold font-mono-num text-zinc-950 dark:text-white tracking-tight">
             {proofCount} <span className="text-lg text-zinc-400 font-normal">/ {expenses.length}</span>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
-              {expenses.length > 0 ? `${Math.round((proofCount / expenses.length) * 100)}% verified with proofs` : 'No bills'}
-            </span>
+          <div className="mt-2 text-xs text-zinc-400">
+            Receipts attached
           </div>
         </div>
       </div>

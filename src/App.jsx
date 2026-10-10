@@ -46,12 +46,23 @@ const TAB_PAGE_TITLES = {
 
 function getTabFromPath(pathname = '/') {
   const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
-  const user = authService.getCurrentUser();
-  if (!user) {
-    return 'login';
-  }
-  if (clean === '/' || clean === '/login' || clean === '/signin' || clean === '/signup') {
+  if (clean === '/' || clean === '/overview') {
     return 'overview';
+  }
+  if (clean === '/expenses') {
+    return 'expenses';
+  }
+  if (clean === '/tasks' || clean === '/kanban') {
+    return 'kanban';
+  }
+  if (clean === '/reports' || clean === '/audit') {
+    return 'reports';
+  }
+  if (clean === '/tour' || clean === '/guide') {
+    return 'guide';
+  }
+  if (clean === '/login' || clean === '/signin' || clean === '/signup') {
+    return 'login';
   }
   return ROUTE_MAP[clean] || 'overview';
 }
@@ -61,6 +72,7 @@ function getPathFromTab(tabId) {
     case 'expenses': return '/expenses';
     case 'kanban': return '/tasks';
     case 'reports': return '/reports';
+    case 'guide': return '/tour';
     case 'signup': return '/signup';
     case 'login': return '/login';
     case 'overview':
@@ -89,6 +101,18 @@ export default function App() {
   const setActiveTab = useCallback((tabId, options = {}) => {
     const { replace = false, query = {} } = options;
     setActiveTabState(tabId);
+
+    // Sync filter states cleanly
+    setSelectedPayerForExpenses(query.payer || 'All');
+    setSelectedSpendAreaForExpenses(query.category || 'All');
+    if (query.q !== undefined) {
+      setSearchQuery(query.q);
+    }
+
+    if (tabId === 'guide') {
+      setIsTourOpen(true);
+    }
+
     if (typeof window !== 'undefined') {
       const basePath = getPathFromTab(tabId);
       let fullPath = basePath;
@@ -463,11 +487,17 @@ export default function App() {
         initialMode="signin"
         onLoginSuccess={(partner) => {
           handleLoginSuccess(partner);
-          setActiveTab('overview');
+          if (activeTab === 'login' || activeTab === 'signup') {
+            setActiveTab('overview');
+          } else {
+            setActiveTab(activeTab);
+          }
           setIsLoginModalOpen(false);
         }}
         onBackToApp={currentUser ? () => {
-          setActiveTab('overview');
+          if (activeTab === 'login' || activeTab === 'signup') {
+            setActiveTab('overview');
+          }
           setIsLoginModalOpen(false);
         } : null}
         currentUser={currentUser}
@@ -485,9 +515,7 @@ export default function App() {
         onOpenExpenseModal={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }}
         onOpenTaskModal={() => { setTaskToEdit(null); setIsTaskModalOpen(true); }}
         onOpenPartnerModal={handleOpenPartnerModal}
-        onOpenTour={() => setIsTourOpen(true)}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        onOpenTour={() => { setActiveTab('guide'); setIsTourOpen(true); }}
         expenseCount={expenses.length}
         taskCount={tasks.length}
         partnerCount={partners.length}
@@ -500,7 +528,7 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-5 sm:pt-6">
-        {activeTab === 'overview' && (
+        {(activeTab === 'overview' || activeTab === 'guide') && (
           <OverviewTab
             tasks={tasks}
             expenses={expenses}
