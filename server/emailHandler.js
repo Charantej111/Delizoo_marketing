@@ -79,7 +79,9 @@ export async function handleSendEmail(reqBody) {
   const gmailUser = config?.user || process.env.GMAIL_USER || GMAIL_USER_DEFAULT;
   const gmailPass = config?.pass || process.env.GMAIL_APP_PASSWORD || GMAIL_PASS_DEFAULT;
   const senderName = config?.senderName || process.env.GMAIL_SENDER_NAME || 'Delizoo OS';
-  const appUrl = process.env.APP_URL || 'https://delizoo-os.vercel.app';
+  const appUrl = (process.env.APP_URL && !process.env.APP_URL.includes('delizoo-os.vercel.app'))
+    ? process.env.APP_URL.replace(/\/+$/, '')
+    : 'https://os.delizoo.in';
 
   if (!gmailUser || !gmailPass) {
     const msg = 'Gmail SMTP credentials (GMAIL_USER / GMAIL_APP_PASSWORD) not configured yet';
@@ -248,7 +250,7 @@ export async function handleSendEmail(reqBody) {
               <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 8px;">
                 <tr>
                   <td align="left">
-                    <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 11px 20px; font-size: 13px; font-weight: 600; border-radius: 6px; letter-spacing: -0.1px;">
+                    <a href="${appUrl}/" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 11px 20px; font-size: 13px; font-weight: 600; border-radius: 6px; letter-spacing: -0.1px;">
                       View Task on Board →
                     </a>
                   </td>
@@ -410,7 +412,7 @@ export async function handleSendEmail(reqBody) {
               <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 8px;">
                 <tr>
                   <td align="left">
-                    <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 11px 20px; font-size: 13px; font-weight: 600; border-radius: 6px; letter-spacing: -0.1px;">
+                    <a href="${appUrl}/" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 11px 20px; font-size: 13px; font-weight: 600; border-radius: 6px; letter-spacing: -0.1px;">
                       Open Expense Ledger →
                     </a>
                   </td>

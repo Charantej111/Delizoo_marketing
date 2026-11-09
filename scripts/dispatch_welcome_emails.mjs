@@ -12,7 +12,7 @@ const founders = [
 const GMAIL_USER = 'pmcareeros@gmail.com';
 const GMAIL_PASS = 'jtmemfcjgumleyrk';
 const SENDER_NAME = 'Delizoo Operations';
-const APP_URL = 'https://delizoo-os.vercel.app';
+const APP_URL = 'https://os.delizoo.in';
 
 function createTransporter() {
   return nodemailer.createTransport({

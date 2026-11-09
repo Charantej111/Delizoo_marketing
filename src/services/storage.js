@@ -222,8 +222,16 @@ export const storageService = {
     }
   },
 
+  _isSyncing: false,
+  _partnerEmailResynced: false,
+
   // Full 2-Way Sync with Supabase Database
   async syncWithSupabase(onDataUpdated) {
+    if (this._isSyncing) {
+      console.log('[Supabase Sync]: Sync already in progress, skipping duplicate call.');
+      return;
+    }
+    this._isSyncing = true;
     try {
       console.log('[Supabase Sync]: Fetching tables from Supabase...');
 
@@ -269,9 +277,10 @@ export const storageService = {
         });
         this.savePartners(finalPartners, false);
 
-        // If any partner in Supabase was missing email, sync back their verified emails
+        // If any partner in Supabase was missing email, sync back their verified emails (run at most once)
         const anyMissingEmailInDb = dbPartners.some(dbp => !dbp.email || !dbp.email.trim());
-        if (anyMissingEmailInDb) {
+        if (anyMissingEmailInDb && !this._partnerEmailResynced) {
+          this._partnerEmailResynced = true;
           (async () => {
             try {
               await this.pushPartnersToSupabase(finalPartners);
@@ -386,6 +395,8 @@ export const storageService = {
     } catch (err) {
       console.error('[Supabase Sync Failed, using local cache]:', err);
       return this.loadAllData();
+    } finally {
+      this._isSyncing = false;
     }
   },
 
@@ -651,22 +662,36 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEYS.SPEND_AREAS);
   },
 
-  // Subscribe to Supabase Realtime changes
+  // Subscribe to Supabase Realtime changes with debouncing
   subscribeToRealtime(onTaskChange, onExpenseChange, onPartnerChange) {
+    let debounceTimer = null;
+    const debouncedNotify = (callback, payload) => {
+      if (!callback) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        try {
+          callback(payload);
+        } catch (e) {
+          console.error('[Realtime Callback Error]:', e);
+        }
+      }, 1200);
+    };
+
     const channel = supabase
       .channel('delizoo-realtime-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
-        if (onTaskChange) onTaskChange(payload);
+        debouncedNotify(onTaskChange, payload);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, payload => {
-        if (onExpenseChange) onExpenseChange(payload);
+        debouncedNotify(onExpenseChange, payload);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, payload => {
-        if (onPartnerChange) onPartnerChange(payload);
+        debouncedNotify(onPartnerChange, payload);
       })
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   },

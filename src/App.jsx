@@ -234,7 +234,18 @@ export default function App() {
     if (partners && partners.length > 0) {
       const refreshed = authService.getCurrentUser(partners);
       if (refreshed) {
-        setCurrentUser(refreshed);
+        setCurrentUser(prev => {
+          if (
+            prev &&
+            prev.id === refreshed.id &&
+            prev.name === refreshed.name &&
+            prev.email === refreshed.email &&
+            prev.isLead === refreshed.isLead
+          ) {
+            return prev;
+          }
+          return refreshed;
+        });
       }
     }
   }, [partners]);
@@ -273,13 +284,20 @@ export default function App() {
 
   // Load from local storage immediately, then 2-way sync with Supabase Cloud
   useEffect(() => {
-    // 1. Instant local load
-    const data = storageService.loadAllData();
-    setTasks(data.tasks || []);
-    setExpenses(data.expenses || []);
-    setPartners(data.partners || DEFAULT_PARTNERS);
-    setSpendAreas(data.spendAreas || []);
-    setIsLoaded(true);
+    // 1. Instant local load with guaranteed completion
+    try {
+      const data = storageService.loadAllData();
+      if (data) {
+        setTasks(data.tasks || []);
+        setExpenses(data.expenses || []);
+        setPartners(data.partners || DEFAULT_PARTNERS);
+        setSpendAreas(data.spendAreas || []);
+      }
+    } catch (err) {
+      console.error('[Error loading local data]:', err);
+    } finally {
+      setIsLoaded(true);
+    }
 
     // 2. Fetch live records from Supabase  & auto-push any existing local records
     storageService.syncWithSupabase((synced) => {
@@ -326,6 +344,19 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Spend Area Helper
+  const handleAddSpendArea = useCallback((newArea) => {
+    if (!newArea || typeof newArea !== 'string') return;
+    const trimmed = newArea.trim();
+    if (!trimmed) return;
+    setSpendAreas(prev => {
+      if (prev.includes(trimmed)) return prev;
+      const updated = [...prev, trimmed];
+      storageService.saveSpendAreas(updated);
+      return updated;
+    });
   }, []);
 
   // Save Handlers with Supabase cloud persistence, Gmail notifications & Info Popup feedback
@@ -437,7 +468,7 @@ export default function App() {
     if (task.spendArea) {
       handleAddSpendArea(task.spendArea);
     }
-  }, [tasks, partners]);
+  }, [tasks, partners, handleAddSpendArea]);
 
   const handleDeleteTask = useCallback((id) => {
     if (confirm('Delete this task?')) {
@@ -454,18 +485,6 @@ export default function App() {
   const handleSavePartners = useCallback((newPartners) => {
     setPartners(newPartners);
     storageService.savePartners(newPartners);
-  }, []);
-
-  const handleAddSpendArea = useCallback((newArea) => {
-    if (!newArea || typeof newArea !== 'string') return;
-    const trimmed = newArea.trim();
-    if (!trimmed) return;
-    setSpendAreas(prev => {
-      if (prev.includes(trimmed)) return prev;
-      const updated = [...prev, trimmed];
-      storageService.saveSpendAreas(updated);
-      return updated;
-    });
   }, []);
 
   const handleClearData = useCallback(() => {

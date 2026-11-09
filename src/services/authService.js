@@ -179,7 +179,7 @@ export const authService = {
         email: cleanEmail,
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: 'https://delizoo-os.vercel.app/'
+          emailRedirectTo: 'https://os.delizoo.in/'
         }
       });
 
@@ -302,19 +302,25 @@ export const authService = {
     return sessionUser;
   },
 
-  // Retrieve currently logged-in partner
+  // Retrieve currently logged-in partner safely
   getCurrentUser(partners = DEFAULT_PARTNERS) {
     try {
       const saved = localStorage.getItem(AUTH_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const match = partners.find(p =>
-          (p.email && parsed.email && p.email.toLowerCase() === parsed.email.toLowerCase()) ||
-          p.name.toLowerCase() === parsed.name.toLowerCase()
-        );
+        if (!parsed || typeof parsed !== 'object') return null;
+
+        const pList = Array.isArray(partners) && partners.length > 0 ? partners : DEFAULT_PARTNERS;
+        const match = pList.find(p => {
+          if (!p) return false;
+          const emailMatch = p.email && parsed.email && p.email.toLowerCase() === parsed.email.toLowerCase();
+          const nameMatch = p.name && parsed.name && p.name.toLowerCase() === parsed.name.toLowerCase();
+          return emailMatch || nameMatch;
+        });
+
         if (match) {
-          const isLead = match.name.toLowerCase().includes('charan') ||
-            match.role.toLowerCase().includes('lead') ||
+          const isLead = (match.name || '').toLowerCase().includes('charan') ||
+            (match.role || '').toLowerCase().includes('lead') ||
             (match.email && match.email.toLowerCase().includes('ncharantejaa'));
           return {
             ...match,
