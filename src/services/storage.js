@@ -470,9 +470,15 @@ export const storageService = {
         proof_data_url: expense.proofDataUrl || null,
         proof_name: expense.proofName || null
       };
-      await supabase.from('expenses').upsert(dbExpense);
+      const { data, error } = await supabase.from('expenses').upsert(dbExpense);
+      if (error) {
+        console.error('[Supabase saveExpenseItem Error]:', error);
+        return { success: false, error: error.message || 'Supabase error' };
+      }
+      return { success: true, data };
     } catch (err) {
       console.error('[Supabase saveExpenseItem Error]:', err);
+      return { success: false, error: err.message || 'Failed to save to Supabase' };
     }
   },
 
@@ -563,8 +569,10 @@ export const storageService = {
         localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(slimExpenses));
       } catch (e2) {
         console.error('[LocalStorage Fatal Error]:', e2);
+        throw new Error('Device storage quota exceeded. Please clear browsing data or remove large attachments.');
       }
     }
+    return true;
 
     if (pushToDb && Array.isArray(expenses)) {
       const payload = expenses.map(e => ({

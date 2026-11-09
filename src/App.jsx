@@ -9,7 +9,8 @@ import {
   TaskModal,
   ProofModal,
   ImpactModal,
-  PartnerModal
+  PartnerModal,
+  ExpenseStatusPopup
 } from './components/Modals';
 import { LoginModal } from './components/LoginModal';
 import { storageService, DEFAULT_PARTNERS } from './services/storage';
@@ -204,6 +205,7 @@ export default function App() {
   // Modal States
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
+  const [expenseStatusPopup, setExpenseStatusPopup] = useState(null); // { isOpen, status, isEdit, expense, error, cloudSynced, emailDispatched }
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
@@ -326,45 +328,74 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Save Handlers with Supabase cloud persistence & Gmail notifications
-  const handleSaveExpense = useCallback((expense) => {
+  // Save Handlers with Supabase cloud persistence, Gmail notifications & Info Popup feedback
+  const handleSaveExpense = useCallback(async (expense) => {
     const isNew = !expenses.some(e => e.id === expense.id);
 
-    setExpenses(prev => {
-      const idx = prev.findIndex(e => e.id === expense.id);
+    try {
+      const idx = expenses.findIndex(e => e.id === expense.id);
       let updated;
       if (idx >= 0) {
-        updated = [...prev];
+        updated = [...expenses];
         updated[idx] = expense;
       } else {
-        updated = [expense, ...prev];
+        updated = [expense, ...expenses];
       }
+
+      // 1. Commit to Local Storage immediately
       storageService.saveExpenses(updated);
-      return updated;
-    });
+      setExpenses(updated);
 
-    // Push item to Supabase  database
-    storageService.saveExpenseItem(expense);
+      if (expense.spendArea) {
+        handleAddSpendArea(expense.spendArea);
+      }
 
-    // Send email alert to founders via Gmail SMTP when expense is recorded
-    if (isNew) {
-      emailService.sendExpenseLoggedAlert(expense, partners)
-        .then(result => {
-          if (result && result.success) {
-            console.log('[Email Alert Sent]: Expense notification sent to founders.', result);
-          } else {
-            console.warn('[Email Alert Notice]:', result);
-          }
-        })
-        .catch(err => {
-          console.error('[Email Alert Error]:', err);
-        });
+      // 2. Synchronize item with Supabase cloud database
+      const cloudRes = await storageService.saveExpenseItem(expense);
+
+      // 3. Send email alert to founders via Gmail SMTP when expense is recorded
+      let emailDispatched = false;
+      if (isNew) {
+        emailService.sendExpenseLoggedAlert(expense, partners)
+          .then(result => {
+            if (result && result.success) {
+              console.log('[Email Alert Sent]: Expense notification sent to founders.', result);
+            } else {
+              console.warn('[Email Alert Notice]:', result);
+            }
+          })
+          .catch(err => {
+            console.error('[Email Alert Error]:', err);
+          });
+        emailDispatched = true;
+      }
+
+      // 4. Trigger Info Popup for Success
+      const isCloudSuccess = cloudRes ? cloudRes.success !== false : true;
+      setExpenseStatusPopup({
+        isOpen: true,
+        status: 'success',
+        isEdit: !isNew,
+        expense,
+        cloudSynced: isCloudSuccess,
+        cloudError: cloudRes?.error,
+        emailDispatched
+      });
+
+      return { success: true, expense };
+    } catch (err) {
+      console.error('[handleSaveExpense Error]:', err);
+      // Trigger Info Popup for Failure
+      setExpenseStatusPopup({
+        isOpen: true,
+        status: 'failed',
+        isEdit: !isNew,
+        expense,
+        error: err.message || 'Failed to commit expenditure to ledger.'
+      });
+      return { success: false, error: err.message };
     }
-
-    if (expense.spendArea) {
-      handleAddSpendArea(expense.spendArea);
-    }
-  }, [expenses, partners]);
+  }, [expenses, partners, handleAddSpendArea]);
 
   const handleDeleteExpense = useCallback((id) => {
     if (confirm('Delete this expenditure record?')) {
@@ -632,6 +663,35 @@ export default function App() {
         onAddSpendArea={handleAddSpendArea}
         onOpenPartnerModal={() => { setIsExpenseModalOpen(false); handleOpenPartnerModal(); }}
         currentUser={currentUser}
+      />
+
+      {/* Info Popup for Recorded or Failed Expense Feedback */}
+      <ExpenseStatusPopup
+        isOpen={!!expenseStatusPopup?.isOpen}
+        onClose={() => setExpenseStatusPopup(null)}
+        status={expenseStatusPopup?.status || 'success'}
+        isEdit={expenseStatusPopup?.isEdit || false}
+        expense={expenseStatusPopup?.expense}
+        cloudSynced={expenseStatusPopup?.cloudSynced ?? true}
+        cloudError={expenseStatusPopup?.cloudError}
+        emailDispatched={expenseStatusPopup?.emailDispatched || false}
+        error={expenseStatusPopup?.error}
+        partners={partners}
+        expenses={expenses}
+        onRecordAnother={() => {
+          setExpenseStatusPopup(null);
+          setExpenseToEdit(null);
+          setIsExpenseModalOpen(true);
+        }}
+        onViewInLedger={(exp) => {
+          setExpenseStatusPopup(null);
+          setActiveTab('expenses');
+        }}
+        onRetry={(failedExpense) => {
+          setExpenseStatusPopup(null);
+          setExpenseToEdit(failedExpense);
+          setIsExpenseModalOpen(true);
+        }}
       />
 
       <TaskModal
