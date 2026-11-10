@@ -430,7 +430,7 @@ export function ExpensesTab({
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => onDeleteExpense(e.id)}
+                      onClick={() => onDeleteExpense(e)}
                       className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                       title="Delete"
                     >
@@ -526,7 +526,7 @@ export function ExpensesTab({
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => onDeleteExpense(e.id)}
+                            onClick={() => onDeleteExpense(e)}
                             className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                             title="Delete"
                           >

@@ -10,7 +10,8 @@ import {
   ProofModal,
   ImpactModal,
   PartnerModal,
-  ExpenseStatusPopup
+  ExpenseStatusPopup,
+  DeleteConfirmationModal
 } from './components/Modals';
 import { LoginModal } from './components/LoginModal';
 import { storageService, DEFAULT_PARTNERS } from './services/storage';
@@ -206,6 +207,9 @@ export default function App() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [expenseStatusPopup, setExpenseStatusPopup] = useState(null); // { isOpen, status, isEdit, expense, error, cloudSynced, emailDispatched }
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingExpense, setIsDeletingExpense] = useState(false);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
@@ -428,15 +432,70 @@ export default function App() {
     }
   }, [expenses, partners, handleAddSpendArea]);
 
-  const handleDeleteExpense = useCallback((id) => {
-    if (confirm('Delete this expenditure record?')) {
+  const handleDeleteExpense = useCallback((expenseOrId) => {
+    let target = null;
+    if (typeof expenseOrId === 'object' && expenseOrId !== null) {
+      target = expenseOrId;
+    } else {
+      target = expenses.find(e => String(e.id).trim() === String(expenseOrId).trim());
+    }
+    if (!target) {
+      console.warn('[handleDeleteExpense]: Target expense not found for', expenseOrId);
+      return;
+    }
+    setExpenseToDelete(target);
+    setIsDeleteModalOpen(true);
+  }, [expenses]);
+
+  const handleConfirmDelete = useCallback(async (expense) => {
+    if (!expense || !expense.id) return;
+    setIsDeletingExpense(true);
+
+    try {
+      const targetId = String(expense.id).trim();
+
+      // 1. Optimistically remove from frontend state and local cache
       setExpenses(prev => {
-        const updated = prev.filter(e => e.id !== id);
-        storageService.saveExpenses(updated);
+        const updated = prev.filter(e => String(e.id).trim() !== targetId);
+        storageService.saveExpenses(updated, false);
         return updated;
       });
-      // Delete from Supabase
-      storageService.deleteExpenseItem(id);
+
+      // 2. Perform database and persistent local cache deletion
+      const deleteRes = await storageService.deleteExpenseItem(targetId);
+
+      setIsDeletingExpense(false);
+      setIsDeleteModalOpen(false);
+      setExpenseToDelete(null);
+
+      if (deleteRes && deleteRes.success === false) {
+        console.error('[Delete Failed]:', deleteRes.error);
+        setExpenseStatusPopup({
+          isOpen: true,
+          status: 'failed',
+          expense,
+          error: deleteRes.error || 'Failed to delete expenditure from Supabase database.'
+        });
+      } else {
+        // 3. Show notification popup that expenditure was deleted successfully
+        setExpenseStatusPopup({
+          isOpen: true,
+          status: 'deleted',
+          expense,
+          cloudSynced: true
+        });
+      }
+    } catch (err) {
+      console.error('[handleConfirmDelete Error]:', err);
+      setIsDeletingExpense(false);
+      setIsDeleteModalOpen(false);
+      setExpenseToDelete(null);
+      setExpenseStatusPopup({
+        isOpen: true,
+        status: 'failed',
+        expense,
+        error: err.message || 'An error occurred while deleting the expenditure.'
+      });
     }
   }, []);
 
@@ -711,6 +770,21 @@ export default function App() {
           setExpenseToEdit(failedExpense);
           setIsExpenseModalOpen(true);
         }}
+      />
+
+      {/* Delete Confirmation Modal with Detailed Verification */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeletingExpense) {
+            setIsDeleteModalOpen(false);
+            setExpenseToDelete(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        expense={expenseToDelete}
+        isDeleting={isDeletingExpense}
+        partners={partners}
       />
 
       <TaskModal

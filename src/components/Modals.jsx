@@ -22,6 +22,7 @@ import { storageService, POPULAR_CATEGORIES, DEFAULT_PARTNERS, DEFAULT_SPEND_ARE
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomDatePicker } from './ui/CustomDatePicker';
 export { ExpenseStatusPopup } from './ExpenseStatusPopup';
+export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 // 1. Expense Modal (Add / Edit) with Custom Spend Area & Partner Integration
 export function ExpenseModal({

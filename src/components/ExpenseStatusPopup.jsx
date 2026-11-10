@@ -9,14 +9,15 @@ import {
   Check,
   RotateCcw,
   ShieldCheck,
-  Mail
+  Mail,
+  Trash2
 } from 'lucide-react';
 import { normalizePayerName, DEFAULT_PARTNERS } from '../services/storage';
 
 export function ExpenseStatusPopup({
   isOpen,
   onClose,
-  status = 'success', // 'success' | 'failed'
+  status = 'success', // 'success' | 'failed' | 'deleted'
   isEdit = false,
   expense,
   cloudSynced = true,
@@ -31,7 +32,11 @@ export function ExpenseStatusPopup({
 }) {
   const [progress, setProgress] = useState(100);
   const [isPaused, setIsPaused] = useState(false);
-  const autoCloseDurationMs = 6500; // 6.5 seconds auto-dismiss
+  const autoCloseDurationMs = status === 'deleted' ? 5000 : 6500;
+
+  const isSuccess = status === 'success';
+  const isDeleted = status === 'deleted';
+  const isFailed = status === 'failed';
 
   // Close on Escape key
   useEffect(() => {
@@ -45,9 +50,9 @@ export function ExpenseStatusPopup({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Auto-dismiss countdown timer (active only for success state)
+  // Auto-dismiss countdown timer (active for success and deleted states)
   useEffect(() => {
-    if (!isOpen || status !== 'success') {
+    if (!isOpen || isFailed) {
       setProgress(100);
       return;
     }
@@ -70,7 +75,7 @@ export function ExpenseStatusPopup({
     }, intervalMs);
 
     return () => clearInterval(timer);
-  }, [isOpen, status, isPaused, onClose]);
+  }, [isOpen, status, isPaused, onClose, isFailed, autoCloseDurationMs]);
 
   // Partner balance calculation
   const partnerStat = useMemo(() => {
@@ -104,7 +109,6 @@ export function ExpenseStatusPopup({
 
   if (!isOpen) return null;
 
-  const isSuccess = status === 'success';
   const amountNumber = Number(expense?.amount) || 0;
   const isPdf =
     expense?.proofType === 'application/pdf' ||
@@ -129,18 +133,27 @@ export function ExpenseStatusPopup({
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                 isSuccess
                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                  : isDeleted
+                  ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                   : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
               }`}
             >
-              {isSuccess ? (
+              {isSuccess && (
                 <>
                   <Check className="w-3 h-3 stroke-[3]" />
                   <span>{isEdit ? 'Expense Updated' : 'Expense Recorded'}</span>
                 </>
-              ) : (
+              )}
+              {isDeleted && (
+                <>
+                  <Trash2 className="w-3 h-3 stroke-[2.5]" />
+                  <span>Expense Deleted</span>
+                </>
+              )}
+              {isFailed && (
                 <>
                   <AlertCircle className="w-3 h-3 stroke-[2.5]" />
-                  <span>Recording Failed</span>
+                  <span>Action Failed</span>
                 </>
               )}
             </span>
@@ -163,14 +176,14 @@ export function ExpenseStatusPopup({
               className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-lg transition-transform ${
                 isSuccess
                   ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-emerald-500/10 scale-100'
+                  : isDeleted
+                  ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-rose-500/10 scale-100'
                   : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-rose-500/10'
               }`}
             >
-              {isSuccess ? (
-                <CheckCircle2 className="w-7 h-7 stroke-[2.5]" />
-              ) : (
-                <AlertCircle className="w-7 h-7 stroke-[2.5]" />
-              )}
+              {isSuccess && <CheckCircle2 className="w-7 h-7 stroke-[2.5]" />}
+              {isDeleted && <Trash2 className="w-7 h-7 stroke-[2.2]" />}
+              {isFailed && <AlertCircle className="w-7 h-7 stroke-[2.5]" />}
             </div>
 
             <h3 className="text-lg sm:text-xl font-black text-zinc-950 dark:text-white tracking-tight">
@@ -178,26 +191,34 @@ export function ExpenseStatusPopup({
                 ? isEdit
                   ? 'Expenditure Updated Successfully'
                   : 'Expenditure Recorded Successfully'
-                : 'Failed to Record Expenditure'}
+                : isDeleted
+                ? 'Expenditure Deleted Successfully'
+                : 'Failed to Process Expenditure'}
             </h3>
 
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs leading-relaxed">
               {isSuccess
                 ? 'Your transaction has been securely committed to Delizoo OS and ledger accounts updated.'
-                : error || 'Could not write transaction to the ledger. Please check details and try again.'}
+                : isDeleted
+                ? 'The expenditure record has been permanently deleted from both local ledger and Supabase database.'
+                : error || 'Could not complete operation. Please check details and try again.'}
             </p>
           </div>
 
-          {/* If Success: Details Box */}
-          {isSuccess && expense && (
+          {/* Details Box for Success or Deleted */}
+          {(isSuccess || isDeleted) && expense && (
             <div className="space-y-3">
               {/* Highlight Amount Card */}
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Amount Spent
+                    {isDeleted ? 'Amount Removed' : 'Amount Spent'}
                   </span>
-                  <div className="text-2xl sm:text-3xl font-black font-mono-num text-zinc-950 dark:text-white mt-0.5">
+                  <div
+                    className={`text-2xl sm:text-3xl font-black font-mono-num mt-0.5 ${
+                      isDeleted ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-950 dark:text-white'
+                    }`}
+                  >
                     ₹{amountNumber.toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -219,12 +240,12 @@ export function ExpenseStatusPopup({
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-3 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800">
                   <span className="text-[10px] font-semibold text-zinc-400 block mb-0.5">
-                    SPENT BY (PARTNER)
+                    {isDeleted ? 'PAID BY' : 'SPENT BY (PARTNER)'}
                   </span>
                   <div className="font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {normalizePayerName(expense.payer, partners)}
+                    {normalizePayerName(expense.payer, partners) || expense.payer}
                   </div>
-                  {partnerStat && (
+                  {isSuccess && partnerStat && (
                     <div
                       className={`text-[10px] font-mono-num font-semibold mt-1 truncate ${
                         partnerStat.remaining >= 0
@@ -245,7 +266,7 @@ export function ExpenseStatusPopup({
                     {expense.spendArea || expense.category || 'General Operations'}
                   </div>
                   <div className="text-[10px] text-zinc-400 truncate mt-1">
-                    {expense.category || expense.vendor || 'Operational'}
+                    {expense.vendor || expense.category || 'Operational'}
                   </div>
                 </div>
               </div>
@@ -260,17 +281,29 @@ export function ExpenseStatusPopup({
                   <span
                     className={`font-semibold ${
                       cloudSynced
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? isDeleted ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                         : 'text-amber-600 dark:text-amber-400'
                     }`}
                   >
                     {cloudSynced
-                      ? '✓ Synced with Supabase'
-                      : 'Saved locally (Offline mode)'}
+                      ? isDeleted ? '✓ Deleted from Supabase Database' : '✓ Synced with Supabase'
+                      : isDeleted ? 'Removed locally (Offline mode)' : 'Saved locally (Offline mode)'}
                   </span>
                 </div>
 
-                {expense.proofDataUrl && (
+                {isDeleted && (
+                  <div className="flex items-center justify-between pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
+                    <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Ledger Balance:</span>
+                    </div>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      ✓ Recalculated immediately
+                    </span>
+                  </div>
+                )}
+
+                {isSuccess && expense.proofDataUrl && (
                   <div className="flex items-center justify-between pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
                     <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
                       <FileText className="w-3.5 h-3.5 text-emerald-500" />
@@ -282,7 +315,7 @@ export function ExpenseStatusPopup({
                   </div>
                 )}
 
-                {emailDispatched && (
+                {isSuccess && emailDispatched && (
                   <div className="flex items-center justify-between pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
                     <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
                       <Mail className="w-3.5 h-3.5 text-sky-500" />
@@ -298,7 +331,7 @@ export function ExpenseStatusPopup({
           )}
 
           {/* If Failed: Error Message & Attempt Summary */}
-          {!isSuccess && (
+          {isFailed && (
             <div className="space-y-3">
               <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-800 dark:text-rose-300 space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
@@ -306,14 +339,14 @@ export function ExpenseStatusPopup({
                   <span>Failure Details</span>
                 </div>
                 <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300/90 pl-5.5">
-                  {error || 'Unable to store transaction. Please check your inputs or storage quota.'}
+                  {error || 'Unable to complete transaction. Please check your network or permissions.'}
                 </p>
               </div>
 
               {expense && (
                 <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 text-xs space-y-1">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">
-                    Attempted Entry
+                    Target Entry
                   </span>
                   <div className="flex justify-between font-medium text-zinc-800 dark:text-zinc-200">
                     <span>₹{Number(expense.amount || 0).toLocaleString('en-IN')}</span>
@@ -328,7 +361,15 @@ export function ExpenseStatusPopup({
 
         {/* Action Buttons */}
         <div className="p-4 sm:p-5 pt-0 flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80 mt-2">
-          {isSuccess ? (
+          {isDeleted ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-xl bg-zinc-900 dark:bg-rose-600 hover:bg-zinc-800 dark:hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+            >
+              Done
+            </button>
+          ) : isSuccess ? (
             <>
               {onViewInLedger && (
                 <button
@@ -393,11 +434,13 @@ export function ExpenseStatusPopup({
           )}
         </div>
 
-        {/* Auto-Dismiss Countdown Progress Bar (Success only) */}
-        {isSuccess && (
+        {/* Auto-Dismiss Countdown Progress Bar (Active for Success & Deleted) */}
+        {(isSuccess || isDeleted) && (
           <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 overflow-hidden">
             <div
-              className="h-full bg-emerald-500 transition-all ease-linear"
+              className={`h-full transition-all ease-linear ${
+                isDeleted ? 'bg-rose-500' : 'bg-emerald-500'
+              }`}
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -406,4 +449,3 @@ export function ExpenseStatusPopup({
     </div>
   );
 }
-

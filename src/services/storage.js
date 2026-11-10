@@ -118,6 +118,29 @@ export function normalizePayerName(rawName, partners = DEFAULT_PARTNERS) {
 }
 
 export const storageService = {
+  getDeletedExpenseIds() {
+    try {
+      const raw = localStorage.getItem('delizoo_deleted_expense_ids');
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list.map(id => String(id).trim()) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  recordDeletedExpenseId(id) {
+    if (!id) return;
+    const strId = String(id).trim();
+    try {
+      const current = this.getDeletedExpenseIds();
+      current.add(strId);
+      const arr = Array.from(current).slice(-500);
+      localStorage.setItem('delizoo_deleted_expense_ids', JSON.stringify(arr));
+    } catch (e) {
+      console.warn('[Storage recordDeletedExpenseId warn]:', e);
+    }
+  },
+
   // Load local cached records immediately for fast startup
   loadAllData() {
     try {
@@ -182,8 +205,13 @@ export const storageService = {
         });
       }
 
-      // Normalize expenses
-      const expenses = rawExpenses.map(e => {
+      // Normalize expenses (filtering out any permanently deleted IDs)
+      const deletedIds = this.getDeletedExpenseIds();
+      const filteredRawExpenses = Array.isArray(rawExpenses)
+        ? rawExpenses.filter(e => e && e.id && !deletedIds.has(String(e.id).trim()))
+        : [];
+
+      const expenses = filteredRawExpenses.map(e => {
         const isPdf = e.proofType === 'application/pdf' ||
           (e.proofName && e.proofName.toLowerCase().endsWith('.pdf')) ||
           (e.proofDataUrl && e.proofDataUrl.startsWith('data:application/pdf'));
@@ -332,31 +360,40 @@ export const storageService = {
       }
 
       let finalExpenses = localData.expenses;
+      const deletedIds = this.getDeletedExpenseIds();
+
       if (dbExpenses.length > 0) {
-        const dbExpensesMapped = dbExpenses.map(e => {
-          const isPdf = (e.proof_name && e.proof_name.toLowerCase().endsWith('.pdf')) ||
-            (e.proof_data_url && e.proof_data_url.startsWith('data:application/pdf'));
-          return {
-            id: e.id,
-            amount: Number(e.amount) || 0,
-            date: e.date,
-            time: e.time || '',
-            payer: e.payer,
-            spendArea: e.spend_area,
-            category: e.category,
-            vendor: e.vendor || '',
-            paymentMode: e.payment_mode || 'UPI',
-            utrNumber: e.utr_number || '',
-            howItHelped: e.how_it_helped || '',
-            proofDataUrl: e.proof_data_url || null,
-            proofName: e.proof_name || null,
-            proofType: isPdf ? 'application/pdf' : (e.proof_data_url ? 'image/jpeg' : '')
-          };
+        const dbExpensesMapped = dbExpenses
+          .filter(e => e && e.id && !deletedIds.has(String(e.id).trim()))
+          .map(e => {
+            const isPdf = (e.proof_name && e.proof_name.toLowerCase().endsWith('.pdf')) ||
+              (e.proof_data_url && e.proof_data_url.startsWith('data:application/pdf'));
+            return {
+              id: e.id,
+              amount: Number(e.amount) || 0,
+              date: e.date,
+              time: e.time || '',
+              payer: e.payer,
+              spendArea: e.spend_area,
+              category: e.category,
+              vendor: e.vendor || '',
+              paymentMode: e.payment_mode || 'UPI',
+              utrNumber: e.utr_number || '',
+              howItHelped: e.how_it_helped || '',
+              proofDataUrl: e.proof_data_url || null,
+              proofName: e.proof_name || null,
+              proofType: isPdf ? 'application/pdf' : (e.proof_data_url ? 'image/jpeg' : '')
+            };
+          });
+
+        // Preserve any genuine local existing expenses that haven't synced to DB yet (excluding any deleted ones)
+        const dbExpIds = new Set(dbExpensesMapped.map(e => String(e.id).trim()));
+        const localOnlyExpenses = (localData.expenses || []).filter(e => {
+          if (!e || !e.id) return false;
+          const sId = String(e.id).trim();
+          return !dbExpIds.has(sId) && !deletedIds.has(sId);
         });
 
-        // Preserve any local existing expenses that haven't synced to DB yet
-        const dbExpIds = new Set(dbExpensesMapped.map(e => e.id));
-        const localOnlyExpenses = localData.expenses.filter(e => !dbExpIds.has(e.id));
         if (localOnlyExpenses.length > 0) {
           console.log(`[Supabase Sync]: Found ${localOnlyExpenses.length} existing local expenses. Syncing to DB...`);
           for (const le of localOnlyExpenses) {
@@ -364,14 +401,21 @@ export const storageService = {
           }
         }
 
-        finalExpenses = [...dbExpensesMapped, ...localOnlyExpenses];
+        finalExpenses = [...dbExpensesMapped, ...localOnlyExpenses].filter(e =>
+          !deletedIds.has(String(e.id).trim())
+        );
         this.saveExpenses(finalExpenses, false);
       } else if (localData.expenses.length > 0) {
-        // If DB has no expenses yet but local has existing expenses, push them to Supabase
-        console.log(`[Supabase Sync]: Pushing ${localData.expenses.length} existing local expenses to Supabase...`);
-        for (const le of localData.expenses) {
-          this.saveExpenseItem(le);
+        // If DB has no expenses yet but local has existing expenses, push them to Supabase (excluding any deleted)
+        const toPush = localData.expenses.filter(e => e && e.id && !deletedIds.has(String(e.id).trim()));
+        if (toPush.length > 0) {
+          console.log(`[Supabase Sync]: Pushing ${toPush.length} existing local expenses to Supabase...`);
+          for (const le of toPush) {
+            this.saveExpenseItem(le);
+          }
         }
+        finalExpenses = toPush;
+        this.saveExpenses(finalExpenses, false);
       }
 
       const spendAreasSet = new Set(DEFAULT_SPEND_AREAS);
@@ -493,12 +537,53 @@ export const storageService = {
     }
   },
 
-  // Delete single expense from Supabase
+  // Delete single expense from Supabase and local cache
   async deleteExpenseItem(id) {
+    if (!id) {
+      return { success: false, error: 'No expenditure ID provided for deletion.' };
+    }
+    const strId = String(id).trim();
+
+    // 1. Immediately record in deleted register to prevent resurrection during sync
+    this.recordDeletedExpenseId(strId);
+
+    // 2. Immediately purge from local storage cache
     try {
-      await supabase.from('expenses').delete().eq('id', id);
+      const raw = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(e => String(e?.id || '').trim() !== strId);
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(filtered));
+        }
+      }
+    } catch (localErr) {
+      console.warn('[Storage deleteExpenseItem local cache warning]:', localErr);
+    }
+
+    // 3. Delete from Supabase cloud database
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', strId);
+
+      if (error) {
+        console.error('[Supabase deleteExpenseItem Error]:', error);
+        return {
+          success: false,
+          error: error.message || 'Supabase rejected expenditure deletion.'
+        };
+      }
+
+      console.log(`[Supabase]: Successfully deleted expense record "${strId}"`);
+      return { success: true, data };
     } catch (err) {
-      console.error('[Supabase deleteExpenseItem Error]:', err);
+      console.error('[Supabase deleteExpenseItem Exception]:', err);
+      return {
+        success: false,
+        error: err.message || 'Database connection error during expenditure deletion.'
+      };
     }
   },
 
@@ -683,6 +768,9 @@ export const storageService = {
         debouncedNotify(onTaskChange, payload);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, payload => {
+        if (payload?.eventType === 'DELETE' && payload.old?.id) {
+          this.recordDeletedExpenseId(payload.old.id);
+        }
         debouncedNotify(onExpenseChange, payload);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, payload => {
