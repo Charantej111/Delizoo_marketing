@@ -141,6 +141,70 @@ export const storageService = {
     }
   },
 
+  getPendingExpenseUploads() {
+    try {
+      const raw = localStorage.getItem('delizoo_pending_expense_uploads');
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list.map(id => String(id).trim()) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  recordPendingExpenseUpload(id) {
+    if (!id) return;
+    try {
+      const current = this.getPendingExpenseUploads();
+      current.add(String(id).trim());
+      localStorage.setItem('delizoo_pending_expense_uploads', JSON.stringify(Array.from(current)));
+    } catch (e) {
+      console.warn('[Storage recordPendingExpenseUpload]:', e);
+    }
+  },
+
+  clearPendingExpenseUpload(id) {
+    if (!id) return;
+    try {
+      const current = this.getPendingExpenseUploads();
+      current.delete(String(id).trim());
+      localStorage.setItem('delizoo_pending_expense_uploads', JSON.stringify(Array.from(current)));
+    } catch (e) {
+      console.warn('[Storage clearPendingExpenseUpload]:', e);
+    }
+  },
+
+  getPendingTaskUploads() {
+    try {
+      const raw = localStorage.getItem('delizoo_pending_task_uploads');
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list.map(id => String(id).trim()) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  recordPendingTaskUpload(id) {
+    if (!id) return;
+    try {
+      const current = this.getPendingTaskUploads();
+      current.add(String(id).trim());
+      localStorage.setItem('delizoo_pending_task_uploads', JSON.stringify(Array.from(current)));
+    } catch (e) {
+      console.warn('[Storage recordPendingTaskUpload]:', e);
+    }
+  },
+
+  clearPendingTaskUpload(id) {
+    if (!id) return;
+    try {
+      const current = this.getPendingTaskUploads();
+      current.delete(String(id).trim());
+      localStorage.setItem('delizoo_pending_task_uploads', JSON.stringify(Array.from(current)));
+    } catch (e) {
+      console.warn('[Storage clearPendingTaskUpload]:', e);
+    }
+  },
+
   // Load local cached records immediately for fast startup
   loadAllData() {
     try {
@@ -322,8 +386,12 @@ export const storageService = {
         await this.pushPartnersToSupabase(DEFAULT_PARTNERS);
       }
 
+      // 2. Tasks Sync: Supabase is authoritative
       let finalTasks = localData.tasks;
-      if (dbTasks.length > 0) {
+      const pendingTaskUploadIds = this.getPendingTaskUploads();
+
+      if (!tasksRes.error && Array.isArray(tasksRes.data)) {
+        const dbTasks = tasksRes.data;
         const dbTasksMapped = dbTasks.map(t => ({
           id: t.id,
           title: t.title,
@@ -339,30 +407,35 @@ export const storageService = {
           notes: t.notes || ''
         }));
 
-        // Preserve any local existing tasks that haven't synced to DB yet
-        const dbTaskIds = new Set(dbTasksMapped.map(t => t.id));
-        const localOnlyTasks = localData.tasks.filter(t => !dbTaskIds.has(t.id));
-        if (localOnlyTasks.length > 0) {
-          console.log(`[Supabase Sync]: Found ${localOnlyTasks.length} existing local tasks. Syncing to DB...`);
-          for (const lt of localOnlyTasks) {
-            this.saveTaskItem(lt);
+        const dbTaskIds = new Set(dbTasksMapped.map(t => String(t.id).trim()));
+
+        // ONLY push tasks that were created offline and explicitly marked pending upload
+        const pendingLocalTasks = (localData.tasks || []).filter(t => {
+          if (!t || !t.id) return false;
+          const sId = String(t.id).trim();
+          return !dbTaskIds.has(sId) && (pendingTaskUploadIds.has(sId) || t._pendingSync === true);
+        });
+
+        if (pendingLocalTasks.length > 0) {
+          console.log(`[Supabase Sync]: Syncing ${pendingLocalTasks.length} pending offline tasks to Supabase...`);
+          for (const pt of pendingLocalTasks) {
+            await this.saveTaskItem(pt);
+            this.clearPendingTaskUpload(pt.id);
           }
         }
 
-        finalTasks = [...dbTasksMapped, ...localOnlyTasks];
+        // Supabase is authoritative: local cache adopts Supabase database rows.
+        finalTasks = [...dbTasksMapped, ...pendingLocalTasks];
         this.saveTasks(finalTasks, false);
-      } else if (localData.tasks.length > 0) {
-        // If DB has no tasks yet but local has existing tasks, push them to Supabase
-        console.log(`[Supabase Sync]: Pushing ${localData.tasks.length} existing local tasks to Supabase...`);
-        for (const lt of localData.tasks) {
-          this.saveTaskItem(lt);
-        }
       }
 
+      // 3. Expenses Sync: Supabase is authoritative
       let finalExpenses = localData.expenses;
       const deletedIds = this.getDeletedExpenseIds();
+      const pendingExpenseUploadIds = this.getPendingExpenseUploads();
 
-      if (dbExpenses.length > 0) {
+      if (!expensesRes.error && Array.isArray(expensesRes.data)) {
+        const dbExpenses = expensesRes.data;
         const dbExpensesMapped = dbExpenses
           .filter(e => e && e.id && !deletedIds.has(String(e.id).trim()))
           .map(e => {
@@ -386,35 +459,28 @@ export const storageService = {
             };
           });
 
-        // Preserve any genuine local existing expenses that haven't synced to DB yet (excluding any deleted ones)
         const dbExpIds = new Set(dbExpensesMapped.map(e => String(e.id).trim()));
-        const localOnlyExpenses = (localData.expenses || []).filter(e => {
+
+        // ONLY push expenses that were created offline and explicitly marked pending upload
+        const pendingLocalExpenses = (localData.expenses || []).filter(e => {
           if (!e || !e.id) return false;
           const sId = String(e.id).trim();
-          return !dbExpIds.has(sId) && !deletedIds.has(sId);
+          return !dbExpIds.has(sId) && !deletedIds.has(sId) && (pendingExpenseUploadIds.has(sId) || e._pendingSync === true);
         });
 
-        if (localOnlyExpenses.length > 0) {
-          console.log(`[Supabase Sync]: Found ${localOnlyExpenses.length} existing local expenses. Syncing to DB...`);
-          for (const le of localOnlyExpenses) {
-            this.saveExpenseItem(le);
+        if (pendingLocalExpenses.length > 0) {
+          console.log(`[Supabase Sync]: Syncing ${pendingLocalExpenses.length} pending offline expenses to Supabase...`);
+          for (const pe of pendingLocalExpenses) {
+            const res = await this.saveExpenseItem(pe);
+            if (res?.success) {
+              this.clearPendingExpenseUpload(pe.id);
+            }
           }
         }
 
-        finalExpenses = [...dbExpensesMapped, ...localOnlyExpenses].filter(e =>
-          !deletedIds.has(String(e.id).trim())
-        );
-        this.saveExpenses(finalExpenses, false);
-      } else if (localData.expenses.length > 0) {
-        // If DB has no expenses yet but local has existing expenses, push them to Supabase (excluding any deleted)
-        const toPush = localData.expenses.filter(e => e && e.id && !deletedIds.has(String(e.id).trim()));
-        if (toPush.length > 0) {
-          console.log(`[Supabase Sync]: Pushing ${toPush.length} existing local expenses to Supabase...`);
-          for (const le of toPush) {
-            this.saveExpenseItem(le);
-          }
-        }
-        finalExpenses = toPush;
+        // Supabase is authoritative: local cache adopts Supabase database rows.
+        // Stale items deleted on other devices (like Mobile PWA) are completely purged from local storage!
+        finalExpenses = [...dbExpensesMapped, ...pendingLocalExpenses];
         this.saveExpenses(finalExpenses, false);
       }
 
@@ -509,9 +575,12 @@ export const storageService = {
 
   // Save single expense to local cache and Supabase
   async saveExpenseItem(expense) {
+    if (!expense || !expense.id) return { success: false, error: 'Invalid expense' };
+    const strId = String(expense.id).trim();
+
     try {
       const dbExpense = {
-        id: expense.id,
+        id: strId,
         amount: Number(expense.amount) || 0,
         date: expense.date,
         time: expense.time || '',
@@ -528,11 +597,14 @@ export const storageService = {
       const { data, error } = await supabase.from('expenses').upsert(dbExpense);
       if (error) {
         console.error('[Supabase saveExpenseItem Error]:', error);
+        this.recordPendingExpenseUpload(strId);
         return { success: false, error: error.message || 'Supabase error' };
       }
+      this.clearPendingExpenseUpload(strId);
       return { success: true, data };
     } catch (err) {
       console.error('[Supabase saveExpenseItem Error]:', err);
+      this.recordPendingExpenseUpload(strId);
       return { success: false, error: err.message || 'Failed to save to Supabase' };
     }
   },
@@ -544,8 +616,9 @@ export const storageService = {
     }
     const strId = String(id).trim();
 
-    // 1. Immediately record in deleted register to prevent resurrection during sync
+    // 1. Immediately record in deleted register and clear from pending uploads
     this.recordDeletedExpenseId(strId);
+    this.clearPendingExpenseUpload(strId);
 
     // 2. Immediately purge from local storage cache
     try {
@@ -589,9 +662,11 @@ export const storageService = {
 
   // Save single task to local cache and Supabase
   async saveTaskItem(task) {
+    if (!task || !task.id) return;
+    const strId = String(task.id).trim();
     try {
       const dbTask = {
-        id: task.id,
+        id: strId,
         title: task.title,
         spend_area: task.spendArea || 'General Operations',
         priority: task.priority || 'High',
@@ -604,16 +679,26 @@ export const storageService = {
         completed_items: task.completedItems || [],
         notes: task.notes || ''
       };
-      await supabase.from('tasks').upsert(dbTask);
+      const { error } = await supabase.from('tasks').upsert(dbTask);
+      if (error) {
+        console.error('[Supabase saveTaskItem Error]:', error);
+        this.recordPendingTaskUpload(strId);
+      } else {
+        this.clearPendingTaskUpload(strId);
+      }
     } catch (err) {
       console.error('[Supabase saveTaskItem Error]:', err);
+      this.recordPendingTaskUpload(strId);
     }
   },
 
   // Delete single task from Supabase
   async deleteTaskItem(id) {
+    if (!id) return;
+    const strId = String(id).trim();
+    this.clearPendingTaskUpload(strId);
     try {
-      await supabase.from('tasks').delete().eq('id', id);
+      await supabase.from('tasks').delete().eq('id', strId);
     } catch (err) {
       console.error('[Supabase deleteTaskItem Error]:', err);
     }
@@ -747,39 +832,70 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEYS.SPEND_AREAS);
   },
 
-  // Subscribe to Supabase Realtime changes with debouncing
+  // Subscribe to Supabase Realtime changes with independent debouncing
   subscribeToRealtime(onTaskChange, onExpenseChange, onPartnerChange) {
-    let debounceTimer = null;
-    const debouncedNotify = (callback, payload) => {
-      if (!callback) return;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        try {
-          callback(payload);
-        } catch (e) {
-          console.error('[Realtime Callback Error]:', e);
-        }
-      }, 1200);
-    };
+    let taskTimer = null;
+    let expenseTimer = null;
+    let partnerTimer = null;
 
     const channel = supabase
       .channel('delizoo-realtime-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
-        debouncedNotify(onTaskChange, payload);
+        if (payload?.eventType === 'DELETE' && payload.old?.id) {
+          const delId = String(payload.old.id).trim();
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.TASKS);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const filtered = parsed.filter(t => String(t?.id || '').trim() !== delId);
+                localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(filtered));
+              }
+            }
+          } catch (e) {
+            console.warn('[Realtime DELETE task cache error]:', e);
+          }
+        }
+        if (taskTimer) clearTimeout(taskTimer);
+        taskTimer = setTimeout(() => {
+          if (onTaskChange) onTaskChange(payload);
+        }, 500);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, payload => {
         if (payload?.eventType === 'DELETE' && payload.old?.id) {
-          this.recordDeletedExpenseId(payload.old.id);
+          const delId = String(payload.old.id).trim();
+          this.recordDeletedExpenseId(delId);
+          this.clearPendingExpenseUpload(delId);
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const filtered = parsed.filter(e => String(e?.id || '').trim() !== delId);
+                localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(filtered));
+              }
+            }
+          } catch (e) {
+            console.warn('[Realtime DELETE expense cache error]:', e);
+          }
         }
-        debouncedNotify(onExpenseChange, payload);
+        if (expenseTimer) clearTimeout(expenseTimer);
+        expenseTimer = setTimeout(() => {
+          if (onExpenseChange) onExpenseChange(payload);
+        }, 500);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, payload => {
-        debouncedNotify(onPartnerChange, payload);
+        if (partnerTimer) clearTimeout(partnerTimer);
+        partnerTimer = setTimeout(() => {
+          if (onPartnerChange) onPartnerChange(payload);
+        }, 500);
       })
       .subscribe();
 
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (taskTimer) clearTimeout(taskTimer);
+      if (expenseTimer) clearTimeout(expenseTimer);
+      if (partnerTimer) clearTimeout(partnerTimer);
       supabase.removeChannel(channel);
     };
   },

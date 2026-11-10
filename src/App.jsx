@@ -313,14 +313,22 @@ export default function App() {
       }
     });
 
-    // 3. Realtime Supabase listener across team members
+    // 3. Realtime Supabase listener across team members (Mobile <-> Desktop)
     const unsubscribe = storageService.subscribeToRealtime(
-      () => {
+      (payload) => {
+        if (payload?.eventType === 'DELETE' && payload.old?.id) {
+          const delId = String(payload.old.id).trim();
+          setTasks(prev => prev.filter(t => String(t.id).trim() !== delId));
+        }
         storageService.syncWithSupabase(synced => {
           if (synced?.tasks) setTasks(synced.tasks);
         });
       },
-      () => {
+      (payload) => {
+        if (payload?.eventType === 'DELETE' && payload.old?.id) {
+          const delId = String(payload.old.id).trim();
+          setExpenses(prev => prev.filter(e => String(e.id).trim() !== delId));
+        }
         storageService.syncWithSupabase(synced => {
           if (synced?.expenses) setExpenses(synced.expenses);
         });
@@ -332,8 +340,27 @@ export default function App() {
       }
     );
 
+    // 4. Auto-resync when switching back to this tab / window (e.g. after editing on Mobile)
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        storageService.syncWithSupabase(synced => {
+          if (synced) {
+            if (synced.tasks) setTasks(synced.tasks);
+            if (synced.expenses) setExpenses(synced.expenses);
+            if (synced.partners && synced.partners.length > 0) setPartners(synced.partners);
+            if (synced.spendAreas && synced.spendAreas.length > 0) setSpendAreas(synced.spendAreas);
+          }
+        });
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
     return () => {
       if (unsubscribe) unsubscribe();
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
   }, []);
 
